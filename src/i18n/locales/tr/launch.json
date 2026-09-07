@@ -63,7 +63,21 @@
 		"emptyTitle": "Ekran veya pencere bulunamadı",
 		"emptyDescription": "Ekran kaydı iznini az önce verdiyseniz bu seçiciyi yeniden yükleyin. macOS'ta OpenScreen'i yeniden açmanız gerekebilir.",
 		"loadFailedDescription": "OpenScreen yakalama kaynaklarını yükleyemedi. Bu seçiciyi yeniden yükleyip tekrar deneyin.",
-		"defaultSourceName": "Ekran"
+		"defaultSourceName": "Ekran",
+		"pageAreaTitle": "Choose webpage area",
+		"pageAreaHelp": "Drag a box around the webpage. Leave tabs, the address bar, and bookmarks outside the box.",
+		"pageAreaPreview": "Selected browser window",
+		"pageAreaSizeWarning": "Only this area is saved. Keep the window size and browser toolbar layout unchanged while recording. Resizing stops the recording.",
+		"pageAreaBack": "Back",
+		"pageAreaUse": "Use this area",
+		"pageAreaLabel": "Webpage area",
+		"pageAreaEdit": "Adjust webpage area",
+		"pageAreaChoose": "Choose webpage area",
+		"pageAreaReset": "Use whole window",
+		"pageArea_x": "Left",
+		"pageArea_y": "Top",
+		"pageArea_width": "Width",
+		"pageArea_height": "Height"
 	},
 	"recording": {
 		"selectSource": "Lütfen kayıt için bir kaynak seçin",

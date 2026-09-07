@@ -55,6 +55,8 @@ public:
     bool initialize(HMONITOR monitor, int fps, bool captureCursor);
     bool initialize(HWND window, int fps, bool captureCursor);
     bool start();
+    void requireStableSize() { requireStableSize_ = true; }
+    bool contentSizeChanged() const { return contentSizeChanged_; }
     // Returns the most recently arrived frame's texture and timestamp, or
     // false if none is available since the last call. The returned pointer
     // is only valid until the next tryGetNextFrame() call or stop() -- copy
@@ -109,6 +111,9 @@ private:
     std::atomic<int> callbacksInFlight_ = 0;
     bool legacyCallbackRegistered_ = false;
     bool quiesced_ = false;
+    bool requireStableSize_ = false;
+    bool contentSizeChanged_ = false;
+    int initialContentWidth_ = 0, initialContentHeight_ = 0;
     int width_ = 0;
     int height_ = 0;
     int fps_ = 60;

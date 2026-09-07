@@ -18,6 +18,12 @@ import {
 } from "electron";
 import type { AxcutDocument } from "../../src/lib/ai-edition/schema";
 import {
+	type CaptureArea,
+	captureAreaSchema,
+	cropCursorRecording,
+	readAppliedCaptureArea,
+} from "../../src/lib/captureArea";
+import {
 	type NativeLinuxRecordingRequest,
 	portalCursorMode,
 } from "../../src/lib/nativeLinuxRecording";
@@ -77,6 +83,7 @@ import {
 import { findPipeWireCursorHelperPath } from "../native-bridge/cursor/recording/pipeWireCursorRecordingSession";
 import type { CursorRecordingSession } from "../native-bridge/cursor/recording/session";
 import { toHelperRect } from "../native-bridge/helperCoordinates";
+import { requireCaptureAreaSupport } from "../recording/captureArea";
 import { scoreDeviceNameMatch } from "../recording/deviceNameMatching";
 import {
 	isSalvageableFragmentedCapture,
@@ -664,6 +671,7 @@ let nativeWindowsCaptureOutput = "";
 let nativeWindowsCaptureTargetPath: string | null = null;
 let nativeWindowsCaptureWebcamTargetPath: string | null = null;
 let nativeWindowsCaptureRecordingId: number | null = null;
+let nativeWindowsCaptureArea: CaptureArea | null = null;
 let nativeWindowsCursorOffsetMs = 0;
 let nativeWindowsCursorCaptureMode: CursorCaptureMode = "editable-overlay";
 let nativeWindowsCursorRecordingStartMs = 0;
@@ -1364,9 +1372,21 @@ function waitForNativeWindowsCaptureStart(proc: ChildProcessWithoutNullStreams) 
  * reproduced by driving the .exe by hand. macOS has had this since it shipped
  * (`attachNativeMacCaptureOutputDrain`); Windows never did.
  */
-function attachNativeWindowsCaptureOutputDrain(proc: ChildProcessWithoutNullStreams) {
+function attachNativeWindowsCaptureOutputDrain(
+	proc: ChildProcessWithoutNullStreams,
+	onAreaInvalidated: () => void,
+) {
+	let areaStopSent = false;
 	const drain = (chunk: Buffer) => {
 		nativeWindowsCaptureOutput += chunk.toString();
+		if (
+			!areaStopSent &&
+			proc === nativeWindowsCaptureProcess &&
+			nativeWindowsCaptureOutput.includes('"event":"capture-area-invalidated"')
+		) {
+			areaStopSent = true;
+			onAreaInvalidated();
+		}
 	};
 	const cleanup = () => {
 		proc.stdout.off("data", drain);
@@ -2541,7 +2561,21 @@ export function registerIpcHandlers(
 					request.preferSoftwareEncoder === true ||
 					envPreferSoftwareEncoder === "true" ||
 					envPreferSoftwareEncoder === "1";
+				const area = request.source.captureArea
+					? captureAreaSchema.parse(request.source.captureArea)
+					: null;
+				nativeWindowsCaptureArea = null;
+				if (area) {
+					if (request.source.type !== "window")
+						throw new Error("Choose a window for webpage-area recording.");
+					await requireCaptureAreaSupport(helperPath);
+				}
 				const config = {
+					captureAreaEnabled: !!area,
+					captureAreaX: area?.x,
+					captureAreaY: area?.y,
+					captureAreaWidth: area?.width,
+					captureAreaHeight: area?.height,
 					schemaVersion: 2,
 					recordingId,
 					preferSoftwareEncoder,
@@ -2637,10 +2671,16 @@ export function registerIpcHandlers(
 					windowsHide: true,
 				});
 				nativeWindowsCaptureProcess = proc;
-				nativeWindowsCaptureDrainCleanup = attachNativeWindowsCaptureOutputDrain(proc);
+				nativeWindowsCaptureDrainCleanup = attachNativeWindowsCaptureOutputDrain(proc, () => {
+					const window = getMainWindow();
+					if (window && !window.isDestroyed()) window.webContents.send("stop-recording-from-tray");
+				});
 				console.info("[native-wgc] helper spawned", { pid: proc.pid });
 
 				await waitForNativeWindowsCaptureStart(proc);
+				nativeWindowsCaptureArea = area ? readAppliedCaptureArea(nativeWindowsCaptureOutput) : null;
+				if (area && !nativeWindowsCaptureArea)
+					throw new Error("The capture helper did not confirm the webpage area.");
 				const captureStartedAtMs = Date.now();
 				nativeWindowsCursorOffsetMs =
 					cursorCaptureMode === "editable-overlay"
@@ -3086,6 +3126,12 @@ export function registerIpcHandlers(
 			if (cursorCaptureMode === "editable-overlay") {
 				compactPendingCursorTelemetryPauseRanges(nativeWindowsPauseRanges);
 				shiftPendingCursorTelemetry(nativeWindowsCursorOffsetMs);
+				if (nativeWindowsCaptureArea && pendingCursorRecordingData) {
+					pendingCursorRecordingData = cropCursorRecording(
+						pendingCursorRecordingData,
+						nativeWindowsCaptureArea,
+					);
+				}
 				await writePendingCursorTelemetry(screenVideoPath);
 			}
 			let webcamVideoPath: string | undefined;

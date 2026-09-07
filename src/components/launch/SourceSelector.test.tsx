@@ -76,4 +76,35 @@ describe("SourceSelector", () => {
 		});
 		expect(getSources).toHaveBeenCalledTimes(2);
 	});
+	it("passes the confirmed webpage area to the recording source", async () => {
+		const selectSource = vi.fn();
+		window.electronAPI = {
+			...window.electronAPI,
+			getPlatform: () => "win32",
+			selectSource,
+			getSources: vi.fn().mockResolvedValue([
+				{
+					id: "window:42:0",
+					name: "Sample browser",
+					thumbnail: "data:image/png;base64,test",
+					display_id: "1",
+					appIcon: null,
+				},
+			]),
+		};
+		render(<SourceSelector />);
+		fireEvent.click(await screen.findByRole("button", { name: "Sample browser" }));
+		fireEvent.click(screen.getByRole("button", { name: "sourceSelector.pageAreaChoose" }));
+		fireEvent.load(screen.getByRole("img"));
+		fireEvent.change(screen.getByLabelText(/pageArea_y/), { target: { value: "20" } });
+		fireEvent.change(screen.getByLabelText(/pageArea_height/), { target: { value: "80" } });
+		fireEvent.click(screen.getByRole("button", { name: "sourceSelector.pageAreaUse" }));
+		fireEvent.click(screen.getByRole("button", { name: "Share" }));
+		expect(selectSource).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: "window:42:0",
+				captureArea: { x: 0, y: 0.2, width: 1, height: 0.8 },
+			}),
+		);
+	});
 });

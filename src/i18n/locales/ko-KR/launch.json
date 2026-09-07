@@ -63,7 +63,21 @@
 		"emptyTitle": "화면이나 창을 찾을 수 없음",
 		"emptyDescription": "화면 녹화 권한을 방금 허용했다면 이 선택기를 새로고침하세요. macOS에서는 OpenScreen을 다시 열어야 할 수도 있습니다.",
 		"loadFailedDescription": "OpenScreen이 캡처 소스를 불러오지 못했습니다. 이 선택기를 새로고침한 후 다시 시도하세요.",
-		"defaultSourceName": "화면"
+		"defaultSourceName": "화면",
+		"pageAreaTitle": "Choose webpage area",
+		"pageAreaHelp": "Drag a box around the webpage. Leave tabs, the address bar, and bookmarks outside the box.",
+		"pageAreaPreview": "Selected browser window",
+		"pageAreaSizeWarning": "Only this area is saved. Keep the window size and browser toolbar layout unchanged while recording. Resizing stops the recording.",
+		"pageAreaBack": "Back",
+		"pageAreaUse": "Use this area",
+		"pageAreaLabel": "Webpage area",
+		"pageAreaEdit": "Adjust webpage area",
+		"pageAreaChoose": "Choose webpage area",
+		"pageAreaReset": "Use whole window",
+		"pageArea_x": "Left",
+		"pageArea_y": "Top",
+		"pageArea_width": "Width",
+		"pageArea_height": "Height"
 	},
 	"recording": {
 		"selectSource": "녹화할 소스를 선택해 주세요",

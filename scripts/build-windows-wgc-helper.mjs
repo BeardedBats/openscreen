@@ -105,3 +105,7 @@ if (!fs.existsSync(audioUtilsTestPath)) {
 // Pack) instead of failing this packaging command.
 await run(audioUtilsTestPath, [], { cwd: BUILD_DIR });
 console.log(`Passed ${audioUtilsTestPath}`);
+
+const captureAreaTestPath = path.join(BUILD_DIR, "capture_area_test.exe");
+await run(captureAreaTestPath, [], { cwd: BUILD_DIR });
+console.log(`Passed ${captureAreaTestPath}`);

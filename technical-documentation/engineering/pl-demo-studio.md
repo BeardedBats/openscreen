@@ -44,3 +44,11 @@ Local evidence lives in ignored `artifacts/pl-studio`. It contains an explicitly
 - Hidden CLI exports passed at 1920×1080, 1080×1920, 1080×1080, and 1080×1350. Portrait review led to a shared short-edge font scaling fix. 4K, macOS, Linux, installer UI, and post-install recording still require verification. New PL-specific prose is English.
 
 No release was published or merged.
+
+## Webpage area recording (Windows)
+
+Select a window, choose **Choose webpage area**, draw around the page, choose **Use this area**, then Share and Record. Numeric percentage fields allow adjustment. This is a manual rectangle, not automatic browser toolbar detection. Keep the window size and toolbar layout unchanged during capture.
+
+The rebuilt WGC helper copies only the selected pixels into the encoder texture. Tabs, address bar, and bookmarks outside that rectangle are excluded before encoding and saving. An inward, even-pixel crop avoids including pixels beyond the selected boundary. Cursor telemetry uses the helper's exact applied rectangle; excluded cursor samples cannot generate click feedback. An old helper fails the capability check instead of recording the whole window. Window resizing stops capture and uses the existing stop/save recovery path.
+
+Verification for this change: both TypeScript checks, lint (24 existing warnings), localization keys, 223 unit test files (2702 passed, four skipped), renderer build, rebuilt Windows helper, 18 audio tests, and a native D3D11 GPU pixel-exclusion test passed. A hidden browser exercised the built picker with a clearly labeled sample image, including drawing and selection payload; no page errors or overflow occurred at 640 by 680. No visible windows were opened. Live browser WGC capture, resize recovery, and cursor alignment during real recording remain unverified: native desktop interaction is unavailable, and visible app launches are paused at the user's request. The native GPU test is not a substitute for that end-to-end pass.

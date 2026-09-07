@@ -1,3 +1,4 @@
+#include "capture_area.h"
 #include "audio_sample_utils.h"
 #include "dpi_awareness.h"
 #include "mf_encoder.h"
@@ -41,6 +42,8 @@ struct CaptureConfig {
     bool captureSystemAudio = false;
     bool captureMic = false;
     bool captureCursor = false;
+    bool captureAreaEnabled = false;
+    double areaX = 0, areaY = 0, areaWidth = 1, areaHeight = 1;
     bool webcamEnabled = false;
     bool preferSoftwareEncoder = false;
     std::string microphoneDeviceId;
@@ -577,6 +580,12 @@ bool parseConfig(const std::string& json, CaptureConfig& config) {
     if (config.sourceType.empty()) {
         config.sourceType = "display";
     }
+    config.captureAreaEnabled = findBool(json, "captureAreaEnabled", false);
+    config.areaX = findDouble(json, "captureAreaX", 0);
+    config.areaY = findDouble(json, "captureAreaY", 0);
+    config.areaWidth = findDouble(json, "captureAreaWidth", 0);
+    config.areaHeight = findDouble(json, "captureAreaHeight", 0);
+    if (config.captureAreaEnabled && config.sourceType != "window") return false;
     config.sourceId = findString(json, "sourceId");
     config.windowHandle = findString(json, "windowHandle");
     if (config.windowHandle.empty()) {
@@ -651,6 +660,10 @@ void readCaptureCommands(CaptureControl& control, const std::function<void(bool)
 } // namespace
 
 int main(int argc, char* argv[]) {
+    if (argc == 2 && std::string(argv[1]) == "--capabilities") {
+        std::cout << "{\"captureArea\":1}" << std::endl;
+        return 0;
+    }
     // Before anything reads a coordinate. `findMonitorForCapture` matches the
     // config's display bounds against the rects `EnumDisplayMonitors` reports,
     // and the caller sends those bounds in physical pixels; a DPI-unaware
@@ -748,8 +761,22 @@ int main(int argc, char* argv[]) {
     // WGC owns the captured texture size. Encoding must use that exact size
     // until a dedicated GPU scaling pass is introduced; CopyResource requires
     // matching resource dimensions.
-    int width = session.captureWidth();
-    int height = session.captureHeight();
+    const int sourceWidth = session.captureWidth();
+    const int sourceHeight = session.captureHeight();
+    CaptureAreaPixels area{};
+    if (config.captureAreaEnabled) {
+        if (!resolveCaptureArea(config.areaX, config.areaY, config.areaWidth, config.areaHeight,
+                                sourceWidth, sourceHeight, area)) {
+            std::cerr << "ERROR: Invalid webpage capture area. Select the webpage again." << std::endl;
+            return 1;
+        }
+        session.requireStableSize();
+        std::cout << "{\"event\":\"capture-area\",\"area\":{\"x\":" << double(area.left) / sourceWidth
+                  << ",\"y\":" << double(area.top) / sourceHeight << ",\"width\":" << double(area.width) / sourceWidth
+                  << ",\"height\":" << double(area.height) / sourceHeight << "}}" << std::endl;
+    }
+    int width = config.captureAreaEnabled ? static_cast<int>(area.width) : sourceWidth;
+    int height = config.captureAreaEnabled ? static_cast<int>(area.height) : sourceHeight;
     width = (std::max(2, width) / 2) * 2;
     height = (std::max(2, height) / 2) * 2;
 
@@ -959,7 +986,7 @@ int main(int argc, char* argv[]) {
     // OPENSCREEN_WGC_LEGACY_FRAME_CALLBACK=1 reverts to the previously
     // shipped push-based design (frameMutex/frameCv guard the handoff from
     // WGC's own callback thread) as a rollback lever -- see wgc_session.h.
-    const bool legacyFrameCallback = useLegacyFrameCallback();
+    const bool legacyFrameCallback = useLegacyFrameCallback() && !config.captureAreaEnabled;
     CaptureControl control;
     std::atomic<bool> firstFrameWritten = false;
     std::atomic<bool> encodeFailed = false;
@@ -1087,10 +1114,18 @@ int main(int argc, char* argv[]) {
                     ID3D11Texture2D* wgcTexture = nullptr;
                     int64_t wgcTimestampHns = 0;
                     const bool gotFrame = session.tryGetNextFrame(&wgcTexture, &wgcTimestampHns);
+                    if (session.contentSizeChanged()) {
+                        std::cout << "{\"event\":\"capture-area-invalidated\"}" << std::endl;
+                        std::cerr << "ERROR: The window size changed. Webpage-area recording stopped; select the area again." << std::endl;
+                        encodeFailed = true;
+                        control.requestStop();
+                        break;
+                    }
                     if (gotFrame) {
                         if (!latestFrameTexture) {
                             D3D11_TEXTURE2D_DESC desc{};
                             wgcTexture->GetDesc(&desc);
+                            if (config.captureAreaEnabled) { desc.Width = area.width; desc.Height = area.height; }
                             desc.BindFlags = 0;
                             desc.CPUAccessFlags = 0;
                             desc.MiscFlags = 0;
@@ -1107,7 +1142,8 @@ int main(int argc, char* argv[]) {
                         // already owns deciding when to give up -- there is no
                         // separate WGC callback thread left for it to take a
                         // lock down with it.
-                        session.context()->CopyResource(latestFrameTexture.Get(), wgcTexture);
+                        copyCapturedFrame(session.context(), latestFrameTexture.Get(), wgcTexture,
+                                          config.captureAreaEnabled ? &area : nullptr);
                         latestFrameTimestampHns = wgcTimestampHns;
                         firstFrameWritten = true;
                     } else if (!latestFrameTexture) {

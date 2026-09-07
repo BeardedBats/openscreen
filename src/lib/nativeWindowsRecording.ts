@@ -8,6 +8,7 @@ export type NativeWindowsRecordingRequest = {
 		sourceId: string;
 		displayId?: number;
 		windowHandle?: string;
+		captureArea?: import("./captureArea").CaptureArea;
 	};
 	video: {
 		fps: number;

@@ -471,6 +471,7 @@ interface Window {
 }
 
 interface ProcessedDesktopSource {
+	captureArea?: import("../src/lib/captureArea").CaptureArea;
 	id: string;
 	name: string;
 	display_id: string;

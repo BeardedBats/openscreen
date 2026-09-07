@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useScopedT } from "@/contexts/I18nContext";
+import type { CaptureArea } from "@/lib/captureArea";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import styles from "./SourceSelector.module.css";
+import { WindowAreaPicker } from "./WindowAreaPicker";
 
 interface DesktopSource {
 	id: string;
@@ -18,6 +20,8 @@ export function SourceSelector() {
 	const [sources, setSources] = useState<DesktopSource[]>([]);
 	const [selectedSource, setSelectedSource] = useState<DesktopSource | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [captureArea, setCaptureArea] = useState<CaptureArea | null>(null);
+	const [editingArea, setEditingArea] = useState(false);
 	const [loadFailed, setLoadFailed] = useState(false);
 
 	const fetchSources = useCallback(async () => {
@@ -26,7 +30,7 @@ export function SourceSelector() {
 		try {
 			const rawSources = await window.electronAPI.getSources({
 				types: ["screen", "window"],
-				thumbnailSize: { width: 320, height: 180 },
+				thumbnailSize: { width: 960, height: 600 },
 				fetchWindowIcons: true,
 			});
 			setSources(
@@ -62,10 +66,34 @@ export function SourceSelector() {
 	const windowSources = sources.filter((s) => s.id.startsWith("window:"));
 	const hasNoSources = !loading && sources.length === 0;
 
-	const handleSourceSelect = (source: DesktopSource) => setSelectedSource(source);
-	const handleShare = async () => {
-		if (selectedSource) await window.electronAPI.selectSource(selectedSource);
+	const handleSourceSelect = (source: DesktopSource) => {
+		setSelectedSource(source);
+		setCaptureArea(null);
 	};
+	const handleShare = async () => {
+		if (selectedSource)
+			await window.electronAPI.selectSource(
+				captureArea
+					? {
+							...selectedSource,
+							captureArea,
+							name: `${selectedSource.name} — ${t("sourceSelector.pageAreaLabel")}`,
+						}
+					: selectedSource,
+			);
+	};
+
+	if (editingArea && selectedSource?.thumbnail)
+		return (
+			<WindowAreaPicker
+				image={selectedSource.thumbnail}
+				onCancel={() => setEditingArea(false)}
+				onApply={(area) => {
+					setCaptureArea(area);
+					setEditingArea(false);
+				}}
+			/>
+		);
 
 	if (loading) {
 		return (
@@ -115,6 +143,7 @@ export function SourceSelector() {
 				data-testid="source-selector-card"
 				data-source-kind={sourceKind}
 				className={`${styles.sourceCard} ${isSelected ? styles.selected : ""} flex flex-col text-left`}
+				aria-label={source.name}
 				onClick={() => handleSourceSelect(source)}
 			>
 				<div className={styles.thumb}>
@@ -177,6 +206,24 @@ export function SourceSelector() {
 					</TabsContent>
 				</div>
 			</Tabs>
+
+			{selectedSource?.id.startsWith("window:") &&
+				window.electronAPI.getPlatform?.() === "win32" && (
+					<div className={styles.areaActions}>
+						<button
+							type="button"
+							disabled={!selectedSource.thumbnail}
+							onClick={() => setEditingArea(true)}
+						>
+							{t(captureArea ? "sourceSelector.pageAreaEdit" : "sourceSelector.pageAreaChoose")}
+						</button>
+						{captureArea && (
+							<button type="button" onClick={() => setCaptureArea(null)}>
+								{t("sourceSelector.pageAreaReset")}
+							</button>
+						)}
+					</div>
+				)}
 			<div className="flex justify-end gap-2.5 border-t border-[#191d24] px-[18px] py-4">
 				<Button
 					data-testid="source-selector-cancel-button"

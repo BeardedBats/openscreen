@@ -1117,6 +1117,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			}
 
 			const availability = await window.electronAPI.isNativeWindowsCaptureAvailable();
+			if (selectedSource.captureArea && (!availability.success || !availability.available)) {
+				throw new Error(
+					"Webpage-area recording requires the Windows native helper. Full-window fallback is disabled.",
+				);
+			}
 			if (!availability.success || !availability.available) {
 				if (availability.reason === "unsupported-os") {
 					return false;
@@ -1163,6 +1168,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					sourceId: selectedSource.id,
 					...(Number.isFinite(displayId) ? { displayId } : {}),
 					...(windowHandle ? { windowHandle } : {}),
+					...(selectedSource.captureArea ? { captureArea: selectedSource.captureArea } : {}),
 				},
 				video: {
 					fps: TARGET_FRAME_RATE,

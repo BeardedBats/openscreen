@@ -111,3 +111,8 @@ target_link_libraries(audio_sample_utils_test PRIVATE
   mfuuid
   ole32
 )
+
+add_executable(capture_area_test src/capture_area_test.cpp)
+target_compile_definitions(capture_area_test PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+target_compile_options(capture_area_test PRIVATE /EHsc /W4 /utf-8)
+target_link_libraries(capture_area_test PRIVATE d3d11)

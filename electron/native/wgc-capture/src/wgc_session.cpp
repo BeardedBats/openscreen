@@ -146,6 +146,8 @@ bool WgcSession::createCaptureItem(HMONITOR monitor) {
 
     item_ = item;
     const auto size = item_.Size();
+    initialContentWidth_ = size.Width;
+    initialContentHeight_ = size.Height;
     width_ = static_cast<int>(size.Width);
     height_ = static_cast<int>(size.Height);
     return width_ > 0 && height_ > 0;
@@ -166,6 +168,8 @@ bool WgcSession::createCaptureItem(HWND window) {
 
     item_ = item;
     const auto size = item_.Size();
+    initialContentWidth_ = size.Width;
+    initialContentHeight_ = size.Height;
     width_ = roundUpToEven(static_cast<int>(size.Width));
     height_ = roundUpToEven(static_cast<int>(size.Height));
     return width_ > 0 && height_ > 0;
@@ -288,6 +292,13 @@ bool WgcSession::tryGetNextFrame(ID3D11Texture2D** outTexture, int64_t* outTimes
     // behalf.
     auto frame = framePool_.TryGetNextFrame();
     if (!frame) {
+        return false;
+    }
+
+    if (requireStableSize_ && (frame.ContentSize().Width != initialContentWidth_ ||
+                               frame.ContentSize().Height != initialContentHeight_)) {
+        contentSizeChanged_ = true;
+        frame.Close();
         return false;
     }
 

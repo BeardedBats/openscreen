@@ -63,7 +63,21 @@
 		"emptyTitle": "找不到螢幕或視窗",
 		"emptyDescription": "如果您剛授予螢幕錄製權限，請重新載入此選擇器。在 macOS 上，您可能需要重新開啟 OpenScreen。",
 		"loadFailedDescription": "OpenScreen 無法載入擷取來源。請重新載入此選擇器並再試一次。",
-		"defaultSourceName": "螢幕"
+		"defaultSourceName": "螢幕",
+		"pageAreaTitle": "Choose webpage area",
+		"pageAreaHelp": "Drag a box around the webpage. Leave tabs, the address bar, and bookmarks outside the box.",
+		"pageAreaPreview": "Selected browser window",
+		"pageAreaSizeWarning": "Only this area is saved. Keep the window size and browser toolbar layout unchanged while recording. Resizing stops the recording.",
+		"pageAreaBack": "Back",
+		"pageAreaUse": "Use this area",
+		"pageAreaLabel": "Webpage area",
+		"pageAreaEdit": "Adjust webpage area",
+		"pageAreaChoose": "Choose webpage area",
+		"pageAreaReset": "Use whole window",
+		"pageArea_x": "Left",
+		"pageArea_y": "Top",
+		"pageArea_width": "Width",
+		"pageArea_height": "Height"
 	},
 	"recording": {
 		"selectSource": "請選擇要錄製的來源",

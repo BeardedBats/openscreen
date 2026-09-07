@@ -133,6 +133,7 @@ function createShimElectronAPI() {
 		showAbout: () => Promise.resolve(),
 		// No installer in browser mode, so nothing may ever be checked.
 		canCheckForUpdatesNow: () => Promise.resolve(false),
+		detectBrowserArea: async () => null,
 		getSources: () => Promise.resolve(SHIM_SOURCES),
 		selectSource: (source: ShimDesktopSource) => {
 			shimSelectedSource = source;

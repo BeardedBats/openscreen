@@ -33,6 +33,9 @@ interface Window {
 		 *  `compositor.export`/`compositor.exportMulti` runs. Distinct from `exportOnFrameAck`,
 		 *  the OLD web/CPU pipeline's per-frame ack, not a progress signal. */
 		onNativeExportProgress?: (callback: (frames: number) => void) => () => void;
+		detectBrowserArea: (
+			sourceId: string,
+		) => Promise<import("../src/lib/captureArea").CaptureArea | null>;
 		getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>;
 		switchToEditor: () => Promise<void>;
 		switchToHud: () => Promise<void>;

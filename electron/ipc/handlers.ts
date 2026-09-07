@@ -83,7 +83,7 @@ import {
 import { findPipeWireCursorHelperPath } from "../native-bridge/cursor/recording/pipeWireCursorRecordingSession";
 import type { CursorRecordingSession } from "../native-bridge/cursor/recording/session";
 import { toHelperRect } from "../native-bridge/helperCoordinates";
-import { requireCaptureAreaSupport } from "../recording/captureArea";
+import { detectBrowserCaptureArea, requireCaptureAreaSupport } from "../recording/captureArea";
 import { scoreDeviceNameMatch } from "../recording/deviceNameMatching";
 import {
 	isSalvageableFragmentedCapture,
@@ -1879,6 +1879,12 @@ export function registerIpcHandlers(
 			return { success: false, granted: false, status: "unknown", error: String(error) };
 		}
 	}
+
+	ipcMain.handle("detect-browser-area", async (_, sourceId: unknown) => {
+		if (process.platform !== "win32" || typeof sourceId !== "string") return null;
+		const helper = await findNativeWindowsCaptureHelperPath();
+		return helper ? detectBrowserCaptureArea(helper, sourceId) : null;
+	});
 
 	ipcMain.handle("get-sources", async (_, opts) => {
 		// desktopCapturer.getSources can never settle where the GL stack cannot be

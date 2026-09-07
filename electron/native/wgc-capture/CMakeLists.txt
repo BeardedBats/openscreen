@@ -63,6 +63,9 @@ target_compile_definitions(wgc-capture PRIVATE
 target_compile_options(wgc-capture PRIVATE /EHsc /W4 /utf-8)
 
 target_link_libraries(wgc-capture PRIVATE
+  dwmapi
+  uiautomationcore
+  oleaut32
   d3d11
   dxgi
   mf

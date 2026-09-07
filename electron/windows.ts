@@ -504,17 +504,21 @@ export function createEditorWindow(query: Record<string, string> = {}): BrowserW
  * Frameless, transparent, and follows the user across macOS Spaces.
  */
 export function createSourceSelectorWindow(): BrowserWindow {
-	const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+	const { x, y, width, height } = screen.getDisplayNearestPoint(
+		screen.getCursorScreenPoint(),
+	).workArea;
+	const pickerWidth = Math.min(1440, Math.round(width * 0.94));
+	const pickerHeight = Math.min(1000, Math.round(height * 0.92));
 
 	const win = new BrowserWindow({
-		width: 680,
-		height: 580,
-		minHeight: 420,
-		maxHeight: 680,
-		x: Math.round((width - 680) / 2),
-		y: Math.round((height - 580) / 2),
+		width: pickerWidth,
+		height: pickerHeight,
+		minHeight: Math.min(580, pickerHeight),
+		minWidth: Math.min(760, pickerWidth),
+		x: x + Math.round((width - pickerWidth) / 2),
+		y: y + Math.round((height - pickerHeight) / 2),
 		frame: false,
-		resizable: false,
+		resizable: true,
 		alwaysOnTop: true,
 		transparent: true,
 		backgroundColor: "#00000000",

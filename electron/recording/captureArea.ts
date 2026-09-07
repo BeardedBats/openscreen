@@ -24,3 +24,24 @@ export async function requireCaptureAreaSupport(helper: string): Promise<void> {
 		);
 	});
 }
+
+export async function detectBrowserCaptureArea(helper: string, sourceId: string) {
+	const match = /^window:(\d+):\d+$/.exec(sourceId);
+	if (!match) return null;
+	return new Promise<import("../../src/lib/captureArea").CaptureArea | null>((resolve) => {
+		execFile(
+			helper,
+			["--detect-browser-area", match[1]],
+			{ windowsHide: true, timeout: 6000, maxBuffer: 16384 },
+			async (error, stdout) => {
+				try {
+					const { captureAreaSchema } = await import("../../src/lib/captureArea");
+					const result = captureAreaSchema.safeParse(JSON.parse(stdout).area);
+					resolve(!error && result.success ? result.data : null);
+				} catch {
+					resolve(null);
+				}
+			},
+		);
+	});
+}

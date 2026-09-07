@@ -65,7 +65,7 @@
 		"loadFailedDescription": "OpenScreen yakalama kaynaklarını yükleyemedi. Bu seçiciyi yeniden yükleyip tekrar deneyin.",
 		"defaultSourceName": "Ekran",
 		"pageAreaTitle": "Choose webpage area",
-		"pageAreaHelp": "Drag a box around the webpage. Leave tabs, the address bar, and bookmarks outside the box.",
+		"pageAreaHelp": "Review the detected webpage area. Draw a new box or adjust the fields if needed.",
 		"pageAreaPreview": "Selected browser window",
 		"pageAreaSizeWarning": "Only this area is saved. Keep the window size and browser toolbar layout unchanged while recording. Resizing stops the recording.",
 		"pageAreaBack": "Back",
@@ -77,7 +77,12 @@
 		"pageArea_x": "Left",
 		"pageArea_y": "Top",
 		"pageArea_width": "Width",
-		"pageArea_height": "Height"
+		"pageArea_height": "Height",
+		"pageAreaAuto": "Detect webpage",
+		"pageAreaDetectIdle": "Draw around the webpage to adjust the area.",
+		"pageAreaDetecting": "Reading browser page bounds…",
+		"pageAreaDetected": "Page bounds detected. Review the edges. Hidden or custom scrollbars may need adjustment.",
+		"pageAreaDetectFailed": "This browser did not provide page bounds. Draw around the webpage to continue."
 	},
 	"recording": {
 		"selectSource": "Lütfen kayıt için bir kaynak seçin",

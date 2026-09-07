@@ -30,7 +30,7 @@ export function SourceSelector() {
 		try {
 			const rawSources = await window.electronAPI.getSources({
 				types: ["screen", "window"],
-				thumbnailSize: { width: 960, height: 600 },
+				thumbnailSize: { width: 1920, height: 1200 },
 				fetchWindowIcons: true,
 			});
 			setSources(
@@ -87,6 +87,10 @@ export function SourceSelector() {
 		return (
 			<WindowAreaPicker
 				image={selectedSource.thumbnail}
+				initialArea={captureArea}
+				detectArea={() =>
+					window.electronAPI.detectBrowserArea?.(selectedSource.id) ?? Promise.resolve(null)
+				}
 				onCancel={() => setEditingArea(false)}
 				onApply={(area) => {
 					setCaptureArea(area);

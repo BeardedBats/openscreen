@@ -111,3 +111,20 @@
 .areaActions button { padding: 10px 12px; font: 500 14px "SF Pro Text", sans-serif; color: #f2f7fc; background: #193149; border: 1px solid #30475d; border-radius: 6px; }
 .areaActions button:disabled { opacity: .5; }
 .areaActions button:focus-visible, .areaFields input:focus-visible { outline: 2px solid #67dcf2; outline-offset: 2px; }
+
+.areaPicker { box-sizing: border-box; height: 100dvh; padding: 24px; }
+.areaPicker h2 { -webkit-app-region: drag; }
+.areaWorkspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; }
+.areaCanvas { min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; background: #060f19; border: 1px solid #203448; }
+.areaControls { display: flex; flex-direction: column; gap: 18px; overflow-y: auto; padding: 4px; }
+.areaControls .areaFields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.areaControls .areaActions { padding: 0; margin-top: auto; }
+.detectButton { padding: 12px; background: #193149; border: 1px solid #436379; color: #f2f7fc; border-radius: 6px; font: 600 16px "SF Pro Text", sans-serif; }
+.detectButton:focus-visible { outline: 2px solid #67dcf2; outline-offset: 2px; }
+.detectButton:disabled { opacity: .6; }
+@media (max-width: 850px) {
+ .areaWorkspace { display: flex; flex-direction: column; overflow-y: auto; }
+ .areaCanvas { flex: none; min-height: 45dvh; }
+ .areaControls { overflow: visible; flex: none; }
+ .areaControls .areaFields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

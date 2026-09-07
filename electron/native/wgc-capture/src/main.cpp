@@ -1,3 +1,4 @@
+#include "browser_area.h"
 #include "capture_area.h"
 #include "audio_sample_utils.h"
 #include "dpi_awareness.h"
@@ -674,6 +675,12 @@ int main(int argc, char* argv[]) {
     if (!enablePerMonitorV2DpiAwareness()) {
         std::cerr << "ERROR: Could not enable per-monitor-v2 DPI awareness" << std::endl;
         return 1;
+    }
+
+    if (argc == 3 && std::string(argv[1]) == "--detect-browser-area") {
+        winrt::init_apartment(winrt::apartment_type::multi_threaded);
+        try { return detectBrowserArea(reinterpret_cast<HWND>(std::stoull(argv[2]))); }
+        catch (...) { std::cout << "{\"area\":null}" << std::endl; return 0; }
     }
 
     if (argc < 2) {

@@ -1,11 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { executeAgentTool } from "../../../electron/ai-edition/agent-tools";
 import { moveClip } from "../ai-edition/document/timeline";
 import { createEmptyDocument, documentSchema } from "../ai-edition/schema";
 import { computeCameraFullscreenProgress } from "../zoomMath/cameraFullscreenUtils";
 import { addChyron, chyronMotion, replaceChyron, templateChyron } from "./chyrons";
 import { tightenPauses } from "./pauses";
-import { wrapText } from "./rasterize";
+import { applySavedComposition } from "./presets";
+import { studioReferenceSize, wrapText } from "./rasterize";
 import { serializeSubtitles } from "./subtitles";
 
 function fixture() {
@@ -154,5 +155,24 @@ describe("PL Studio authored graphics", () => {
 		const locked = addChyron(doc, { ...templateChyron("section"), locked: true }, 1);
 		expect(tightenPauses(locked).timeline.trimRanges).toHaveLength(0);
 		expect(cut.transcripts).toEqual(doc.transcripts);
+	});
+	it("applies saved composition defaults without changing timeline or media", () => {
+		vi.stubGlobal("localStorage", {
+			getItem: () => JSON.stringify({ version: 1, settings: { padding: 48 } }),
+		});
+		try {
+			const doc = fixture();
+			const next = applySavedComposition(doc);
+			expect(next.legacyEditor?.padding).toBe(48);
+			expect(next.timeline).toEqual(doc.timeline);
+			expect(next.assets).toEqual(doc.assets);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+	it("keeps video font sizes stable across landscape and portrait 1080 outputs", () => {
+		expect(studioReferenceSize(16 / 9)).toEqual({ width: 1920, height: 1080 });
+		expect(studioReferenceSize(9 / 16)).toEqual({ width: 1080, height: 1920 });
+		expect(studioReferenceSize(1)).toEqual({ width: 1080, height: 1080 });
 	});
 });

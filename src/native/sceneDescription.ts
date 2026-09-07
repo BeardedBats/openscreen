@@ -53,7 +53,12 @@ import {
 } from "@/lib/compositeLayout";
 import { parseCssGradient, resolveLinearGradientAngle } from "@/lib/exporter/gradientParser";
 import { clickFeedbackScene } from "@/lib/pl-studio/clickFeedback";
-import { chyronGeometry, rasterizeCaption, rasterizeChyron } from "@/lib/pl-studio/rasterize";
+import {
+	chyronGeometry,
+	rasterizeCaption,
+	rasterizeChyron,
+	studioReferenceSize,
+} from "@/lib/pl-studio/rasterize";
 import type { Chyron } from "@/lib/pl-studio/schema";
 import type { CompositorClipInput } from "./contracts";
 
@@ -1087,7 +1092,7 @@ export function buildSceneDescription(
 					const geometry = chyronGeometry(region, captionAspect);
 					const raster = rasterizeChyron(
 						region.chyron,
-						(1080 * captionAspect * geometry.width) / 100,
+						(studioReferenceSize(captionAspect).width * geometry.width) / 100,
 					);
 					return {
 						id: region.id,

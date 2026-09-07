@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { create } from "zustand";
 import { toFileUrl } from "@/components/video-editor/projectPersistence";
 import { toastText } from "@/i18n/toastText";
+import { applySavedComposition } from "@/lib/pl-studio/presets";
 import { nativeBridgeClient } from "@/native/client";
 import { placeAudioTrackInDocument } from "../document/audioTracks";
 import { createId } from "../document/ids";
@@ -246,8 +247,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 				dirty: false,
 				lastSavedAt: new Date(),
 			});
+			const configured = applySavedComposition(document);
+			if (configured !== document && !(await get().saveDocument(configured, { history: false }))) {
+				throw new Error("Could not save the new project's composition defaults.");
+			}
 			clearHistory();
-			return document;
+			return configured;
 		} catch (error) {
 			set({
 				status: "error",

@@ -109,12 +109,17 @@ export function rasterizeChyron(chyron: Chyron, width: number): { image: string;
 	return result;
 }
 
+export function studioReferenceSize(aspect: number) {
+	const ratio = Number.isFinite(aspect) && aspect > 0 ? aspect : 16 / 9;
+	return { width: 1080 * Math.max(1, ratio), height: 1080 * Math.max(1, 1 / ratio) };
+}
+
 export function chyronGeometry(region: AxcutAnnotationRegion, aspect: number) {
 	if (!region.chyron) return { ...region.position, ...region.size };
-	const referenceWidth = 1080 * aspect;
+	const { width: referenceWidth, height: referenceHeight } = studioReferenceSize(aspect);
 	const width = Math.min(90, Math.max(25, region.size.width));
 	const { height: pixels } = rasterizeChyron(region.chyron, (referenceWidth * width) / 100);
-	const height = (pixels / 1080) * 100;
+	const height = (pixels / referenceHeight) * 100;
 	return {
 		x: Math.max(5, Math.min(95 - width, region.position.x)),
 		y: Math.max(5, Math.min(95 - height, region.position.y)),
@@ -130,7 +135,8 @@ export function rasterizeCaption(
 	edge?: "top" | "bottom",
 ) {
 	if (!studioFontStatus.ready) throw new Error("Caption fonts have not loaded.");
-	const width = (1080 * aspect * region.size.width) / 100;
+	const reference = studioReferenceSize(aspect);
+	const width = (reference.width * region.size.width) / 100;
 	const size = region.style.fontSize;
 	const key = JSON.stringify(["caption", region.content, region.style, width]);
 	let raster = cache.get(key);
@@ -171,7 +177,7 @@ export function rasterizeCaption(
 		if (cache.size >= 64) cache.delete(cache.keys().next().value ?? "");
 		cache.set(key, raster);
 	}
-	const height = raster.height / 1080;
+	const height = raster.height / reference.height;
 	const y = region.position.y / 100 + (edge === "bottom" ? region.size.height / 100 - height : 0);
 	return { image: raster.image, height, y: Math.max(0, Math.min(1 - height, y)) };
 }

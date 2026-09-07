@@ -6,6 +6,7 @@ import {
 	getCaptionSettings,
 	patchCaptionSettings,
 } from "@/lib/ai-edition/captions/settings";
+import { getCaptionTranslations } from "@/lib/ai-edition/captions/translations";
 import {
 	type AxcutAnnotationRegion,
 	type AxcutDocument,
@@ -240,6 +241,24 @@ export function ChyronsPane({ tl }: { tl: Timeline }) {
 		<div className="pl-pane">
 			<h2>Chyrons</h2>
 			<p>Choose a template. Edit the copy, then place it at the playhead.</p>
+			<button
+				type="button"
+				onClick={() => {
+					const time = useProjectStore.getState().currentTimeSec * 1000;
+					const cue = deriveCaptionCues(
+						doc,
+						{ ...getCaptionSettings(doc), enabled: true },
+						getCaptionTranslations(doc),
+					).find((c) => c.startMs <= time && c.endMs > time);
+					if (!cue) {
+						toast.info("Select a spoken passage or place the playhead over transcribed speech.");
+						return;
+					}
+					setDraft((current) => ({ ...current, headline: cue.text }));
+				}}
+			>
+				Use current transcript phrase
+			</button>
 			<div className="pl-library">
 				{CHYRON_TEMPLATES.map((item) => (
 					<button

@@ -111,6 +111,7 @@ const WRITER_NAMES = {
 // ---------------------------------------------------------------------------
 
 const DECLARED: WritePath[] = [
+	w("src/lib/ai-edition/store/projectStore.ts", "createProject", "save", "automatic"),
 	// PL controls are direct user gestures; the save after Undo is automatic.
 	w("src/components/ai-edition/PLComposition.tsx", "save", "save", "gesture"),
 	w("src/components/ai-edition/PLCursorFeedback.tsx", "patch", "save", "gesture"),

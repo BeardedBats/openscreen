@@ -23,11 +23,12 @@ The local build also stages the CPU Whisper helper and its DLLs. Build it with C
 
 - Both application and test TypeScript checks passed.
 - Biome passed with 24 existing warnings. Localization keys passed across 12 non-English locales and seven namespaces.
-- Full unit run: 214 files passed; seven files initially failed. All failures were fixed, then eight affected files passed 277 tests. The final PL suite passed nine tests.
+- Full unit run: 214 files passed; seven files initially failed. All failures were fixed, then eight affected files passed 277 tests. The final PL suite passed eleven tests; the follow-up document-write audit passed. Project-store tests also passed.
 - Windows native capture/audio helpers built; 18 audio tests passed. Screen capture and full screen/system-audio/microphone/webcam backend smoke tests passed.
 - Rebuilt compositor: 22 Rust region tests passed.
 - CPU Whisper transcribed the sample. Its GPU-only assertion was skipped as unsupported; no GPU transcription claim is made.
 - Actual Electron renderer interaction verified manual target drawing, Undo/Redo, caption spelling correction without video deletion, save/reopen, and native 1080p export. The sample exported 360 frames over 12 seconds with three chyrons.
+- The CLI now accepts current document projects without flattening or migrating away their semantic graphics.
 - The NSIS installer built. Its packaged native addon hash matches the rebuilt addon. All five font files are in the app archive. The installer is unsigned and was not installed.
 
 Local evidence lives in ignored `artifacts/pl-studio`. It contains an explicitly fictional dashboard, placeholder presenter, synthetic narration and synthetic cursor telemetry. Private hardware capture files must not be published. Electron page screenshots show editor chrome; the native preview plane is absent from CDP screenshots. Exported frames are the evidence for rendered graphics.
@@ -35,11 +36,11 @@ Local evidence lives in ignored `artifacts/pl-studio`. It contains an explicitly
 ## Unfinished or unverified
 
 - Per-scene screen/camera layout overrides, imported embedded-audio sync offset, and click sounds are not implemented.
-- Saved feature defaults require Apply; they are not automatically loaded into every new project.
-- The glossary is an editable reference, not an automatic recognition correction engine. Label Section opens the editable library; it does not yet derive a suggested title from a selected passage.
+- New projects apply the saved Composition default. Feature-specific defaults remain scoped Apply actions.
+- The glossary is an editable reference, not an automatic recognition correction engine. Label Section can use the transcript phrase at the playhead. A semantic title suggestion from a multi-phrase selection is not implemented.
 - Chyron pointer association is not implemented; existing arrow annotations remain separate. Collision guidance is geometric, not semantic recognition of table content.
 - AI uses the existing provider path, but no credential-backed AI pass was run. Provider failures and cancellation still need live verification.
 - Native OS input/HUD/tray interaction could not run: the native computer-use surface was unavailable. Backend capture tests do not replace that check. Further app launches were stopped at the user's request.
-- Portrait/square/4:5, 4K, macOS, Linux, installer launch, and post-install recording/export require further verification. New PL-specific prose is English.
+- Hidden CLI exports passed at 1920×1080, 1080×1920, 1080×1080, and 1080×1350. Portrait review led to a shared short-edge font scaling fix. 4K, macOS, Linux, installer UI, and post-install recording still require verification. New PL-specific prose is English.
 
 No release was published or merged.

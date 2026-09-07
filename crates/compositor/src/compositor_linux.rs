@@ -2224,11 +2224,12 @@ impl Compositor {
         let needs_ann_copy = scene_ref
             .as_ref()
             .is_some_and(|s| s.annotations.iter().any(|a| a.kind == "blur" && visible(a)));
+        let click_ring = cursor_ref.as_ref().and_then(|track| crate::frame_geometry::click_ring(&g, &crate::frame_geometry::CursorPlanInput {render_px: [rw, rh], u_max, v_max, cfg, live: lp, scene: scene_ref.as_ref(), track, t: self.cursor_time.borrow().unwrap_or(frame / crate::frame_geometry::FPS)}));
         let mut ann_draws: Vec<AnnDraw> = Vec::new();
         if let Some(scene) = scene_ref.as_ref() {
             // La liste arrive deja triee par zIndex cote app : l'ordre d'iteration
             // EST l'ordre de peinture.
-            for a in &scene.annotations {
+            for a in click_ring.iter().chain(scene.annotations.iter()) {
                 if !visible(a) {
                     continue;
                 }
@@ -2316,12 +2317,12 @@ impl Compositor {
                         };
                         let cached = {
                             let c = self.ann_img_cache.borrow();
-                            c.get(&a.id).filter(|(_, _, _, len)| *len == src.len()).cloned()
+                            c.get(&a.id).filter(|(_, _, _, len)| *len == crate::scene::image_cache_key(src)).cloned()
                         };
                         let Some((tex, iw, ih, _)) = cached.or_else(|| {
                             match self.load_image_texture(src) {
                                 Ok((tex, w, h)) => {
-                                    let e = (tex, w, h, src.len());
+                                    let e = (tex, w, h, crate::scene::image_cache_key(src));
                                     self.ann_img_cache
                                         .borrow_mut()
                                         .insert(a.id.clone(), e.clone());
@@ -2341,7 +2342,8 @@ impl Compositor {
                         // CONTAIN, pas cover : l'image tient entiere dans la boite
                         // et se centre. Etirer au rect deformerait une capture ou
                         // un logo, ce que le rendu web ne fait pas non plus.
-                        let box_aspect = quad_px[0] / quad_px[1];
+                        let anim = a.image_motion(t);
+                    let box_aspect = quad_px[0] / quad_px[1];
                         let img_aspect = iw as f32 / ih as f32;
                         let (fit_w, fit_h) = if img_aspect > box_aspect {
                             (dst[2], dst[3] * (box_aspect / img_aspect))
@@ -2351,15 +2353,15 @@ impl Compositor {
                         let view = tex.create_view(&wgpu::TextureViewDescriptor::default());
                         let cb = LayerCB {
                             dst: [
-                                dst[0] + (dst[2] - fit_w) * 0.5,
+                                dst[0] + (dst[2] - fit_w) * 0.5 + anim.translate_x * rh / 1080.0 / rw,
                                 dst[1] + (dst[3] - fit_h) * 0.5,
-                                fit_w,
+                                fit_w * anim.reveal,
                                 fit_h,
                             ],
-                            src: [0.0, 0.0, 1.0, 1.0],
+                            src: [0.0, 0.0, anim.reveal, 1.0],
                             quad_px: [fit_w * rw, fit_h * rh],
                             mode: 7.0,
-                            color: [1.0, 1.0, 1.0, 1.0],
+                            color: [1.0, 1.0, 1.0, anim.opacity],
                             // Mode 7 clippe sur `fx` : un rect qui couvre tout le
                             // cadre = pas de clip.
                             fx: [0.0, 0.0, 1.0, 1.0],

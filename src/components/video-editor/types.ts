@@ -99,6 +99,9 @@ export function rotation3DPerspective(width: number, height: number): number {
 export type ZoomRegionSource = "auto" | "manual";
 
 export interface ZoomRegion {
+	entryMs?: number;
+	exitMs?: number;
+	easing?: "smooth" | "linear" | "cut";
 	id: string;
 	startMs: number;
 	endMs: number;
@@ -252,6 +255,8 @@ export interface TrimRegion {
  * canvas", so the shape stays intentionally simpler.
  */
 export interface CameraFullscreenRegion {
+	transitionMs?: number;
+	startFullscreen?: boolean;
 	id: string;
 	startMs: number;
 	endMs: number;
@@ -328,6 +333,7 @@ export interface AnnotationTextStyle {
 }
 
 export interface AnnotationRegion {
+	chyron?: import("@/lib/pl-studio/schema").Chyron;
 	id: string;
 	startMs: number;
 	endMs: number;

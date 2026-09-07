@@ -1197,9 +1197,10 @@ impl Compositor {
         scene: Option<&Scene>,
         t: f32,
         s_ann: [f32; 4],
+        click_ring: Option<&crate::scene::SceneAnnotation>,
     ) -> Result<()> {
         let Some(scene) = scene else { return Ok(()) };
-        if scene.annotations.is_empty() {
+        if scene.annotations.is_empty() && click_ring.is_none() {
             return Ok(());
         }
         let (rw, rh) = (self.render_w as f32, self.render_h as f32);
@@ -1226,7 +1227,7 @@ impl Compositor {
         let enc = self.begin_pass(cmd, &self.rt, None, &self.pipeline_main)?;
         // La liste arrive déjà triée par zIndex côté app : l'ordre d'itération EST l'ordre
         // de peinture.
-        for a in &scene.annotations {
+        for a in click_ring.into_iter().chain(scene.annotations.iter()) {
             if !visible(a) {
                 continue;
             }
@@ -1294,12 +1295,12 @@ impl Compositor {
                     };
                     let cached = {
                         let c = self.ann_img_cache.borrow();
-                        c.get(&a.id).filter(|(_, _, _, len)| *len == src.len()).cloned()
+                        c.get(&a.id).filter(|(_, _, _, len)| *len == crate::scene::image_cache_key(src)).cloned()
                     };
                     let Some((tex, iw, ih, _)) = cached.or_else(|| {
                         match self.load_image_texture(src) {
                             Ok((tex, w, h)) => {
-                                let e = (tex, w, h, src.len());
+                                let e = (tex, w, h, crate::scene::image_cache_key(src));
                                 self.ann_img_cache.borrow_mut().insert(a.id.clone(), e.clone());
                                 Some(e)
                             }
@@ -1314,6 +1315,7 @@ impl Compositor {
                     if iw == 0 || ih == 0 {
                         continue;
                     }
+                    let anim = a.image_motion(t);
                     let box_aspect = quad_px[0] / quad_px[1];
                     let img_aspect = iw as f32 / ih as f32;
                     let (fit_w, fit_h) = if img_aspect > box_aspect {
@@ -1324,15 +1326,15 @@ impl Compositor {
                     enc.set_fragment_texture(2, Some(&tex));
                     self.draw_solid(enc, &LayerCB {
                         dst: [
-                            dst[0] + (dst[2] - fit_w) * 0.5,
+                            dst[0] + (dst[2] - fit_w) * 0.5 + anim.translate_x * rh / 1080.0 / rw,
                             dst[1] + (dst[3] - fit_h) * 0.5,
-                            fit_w,
+                            fit_w * anim.reveal,
                             fit_h,
                         ],
-                        src: [0.0, 0.0, 1.0, 1.0],
+                        src: [0.0, 0.0, anim.reveal, 1.0],
                         quad_px: [fit_w * rw, fit_h * rh],
                         mode: 7.0,
-                        color: [1.0, 1.0, 1.0, 1.0],
+                        color: [1.0, 1.0, 1.0, anim.opacity],
                         fx: [0.0, 0.0, 1.0, 1.0],
                         ..Default::default()
                     });
@@ -2274,7 +2276,8 @@ impl Compositor {
         // --- annotations : calque le plus haut, ancré sur le rect ÉCRAN SANS ZOOM ---
         // `s_ann`, pas `s_dst` : le zoom vit dans la boîte depuis l'issue #179, donc `s_dst`
         // grandit avec lui et emmenait annotations et sous-titres dans le mouvement.
-        self.draw_annotations(cmd_buf, scene_ref.as_ref(), g.source_t, g.s_ann)?;
+        let click_ring = cursor_ref.as_ref().and_then(|track| crate::frame_geometry::click_ring(&g, &crate::frame_geometry::CursorPlanInput {render_px: [self.render_w as f32, self.render_h as f32], u_max, v_max, cfg, live: lp, scene: scene_ref.as_ref(), track, t: self.cursor_time.borrow().unwrap_or(frame / crate::frame_geometry::FPS)}));
+        self.draw_annotations(cmd_buf, scene_ref.as_ref(), g.source_t, g.s_ann, click_ring.as_ref())?;
 
         // Ni miroir RGBA ni attente ici : le miroir ne sert qu'à `readback_direct` (la
         // preview), et l'export ne lit jamais le RGBA — le blit pleine résolution était payé

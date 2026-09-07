@@ -111,6 +111,13 @@ const WRITER_NAMES = {
 // ---------------------------------------------------------------------------
 
 const DECLARED: WritePath[] = [
+	// PL controls are direct user gestures; the save after Undo is automatic.
+	w("src/components/ai-edition/PLComposition.tsx", "save", "save", "gesture"),
+	w("src/components/ai-edition/PLCursorFeedback.tsx", "patch", "save", "gesture"),
+	w("src/components/ai-edition/PLStudio.tsx", "afterHistory", "save", "automatic"),
+	w("src/components/ai-edition/PLStudio.tsx", "save", "save", "gesture"),
+	w("src/components/ai-edition/PLZoomTarget.tsx", "PLZoomTarget", "save", "gesture"),
+	w("src/components/ai-edition/PLZoomTarget.tsx", "patch", "save", "gesture"),
 	// Dropping the legacy auto-caption annotations is a button in the captions pane.
 	w(
 		"src/components/ai-edition/CaptionsPane.tsx",

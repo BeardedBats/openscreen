@@ -16,6 +16,7 @@
 // described are gone (see `MUTATING_TOOL_NAMES`).
 
 import { z } from "zod";
+import { patchCaptionSettings } from "../../src/lib/ai-edition/captions/settings";
 import {
 	collapseTracksToPills,
 	patchAudioTrack,
@@ -34,6 +35,7 @@ import {
 } from "../../src/lib/ai-edition/document/timeline";
 import { setDocumentWordText } from "../../src/lib/ai-edition/document/transcript";
 import type { AxcutDocument } from "../../src/lib/ai-edition/schema";
+import { patchEditorSettings } from "../../src/lib/ai-edition/store/editorSettings";
 import { hasAnyClipWithCamera } from "../../src/lib/ai-edition/timeline/camera";
 import { isGeneratedAssetId } from "../../src/lib/ai-edition/timeline/clip-parts";
 import {
@@ -55,6 +57,21 @@ import {
 	effectiveZoomScale,
 	ZOOM_DEPTH_LEGEND,
 } from "../../src/lib/ai-edition/timeline/zoom-scale";
+import { presenterToCorner } from "../../src/lib/pl-studio/layouts";
+import { chyronSchema } from "../../src/lib/pl-studio/schema";
+
+export const setCompositionArgs = z.object({
+	aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:5"]).optional(),
+	layout: z.enum(["picture-in-picture", "no-webcam", "dual-frame", "vertical-stack"]).optional(),
+	cameraCorner: z.enum(["top-left", "top-right", "bottom-left", "bottom-right"]).optional(),
+	presenterToCornerAtSec: z.number().nonnegative().optional(),
+	transitionMs: z.number().min(0).max(1500).optional(),
+	padding: z.number().min(0).max(100).optional(),
+	borderRadius: z.number().min(0).max(100).optional(),
+	captionsEnabled: z.boolean().optional(),
+	captionSize: z.number().min(24).max(100).optional(),
+	audioGainDb: z.number().min(-12).max(12).optional(),
+});
 
 export interface AgentToolExecution {
 	ok: boolean;
@@ -478,6 +495,7 @@ export const setSpeedArgs = z.object({
 });
 
 export const addAnnotationArgs = z.object({
+	chyron: chyronSchema.optional(),
 	startSec: secondsSchema,
 	endSec: secondsSchema,
 	text: z.string().default(""),
@@ -486,6 +504,7 @@ export const addAnnotationArgs = z.object({
 });
 
 export const setAnnotationArgs = z.object({
+	chyron: chyronSchema.partial().optional(),
 	annotationId: z.string().min(1),
 	startSec: secondsSchema.optional(),
 	endSec: secondsSchema.optional(),
@@ -585,6 +604,7 @@ export const OPENSCREEN_TOOL_NAMES = [
 	"addSpeed",
 	"setSpeed",
 	"addAnnotation",
+	"setComposition",
 	"setAnnotation",
 	"addCameraFullscreen",
 	"setCameraFullscreen",
@@ -641,6 +661,7 @@ export const PHANTOM_TOOL_NAMES = [
  * remaining surfaces (descriptions, built tools, executor cases) to each other.
  */
 export const MUTATING_TOOL_NAMES: ReadonlySet<string> = new Set([
+	"setComposition",
 	// Writes the transcript, not the timeline — but it writes the document, so it is a
 	// consented edit like any other.
 	"setWordText",
@@ -1149,7 +1170,7 @@ function cursorAnchorReport(
 	};
 }
 
-export function executeAgentTool(
+function executeUnlockedAgentTool(
 	document: AxcutDocument,
 	name: string,
 	rawArgs: string,
@@ -1858,7 +1879,8 @@ export function executeAgentTool(
 				startMs,
 				endMs,
 				type: "text" as const,
-				content: parsed.data.text,
+				chyron: parsed.data.chyron,
+				content: parsed.data.chyron?.headline ?? parsed.data.text,
 				textContent: parsed.data.text,
 				position: { x: parsed.data.x, y: parsed.data.y },
 				size: { width: 30, height: 20 },
@@ -1903,14 +1925,31 @@ export function executeAgentTool(
 			const existing = document.annotations.find((a) => a.id === annotationId);
 			const annPill = new Set(resolvePillIds(document.annotations, annotationId));
 			if (!existing) return failure(`Unknown annotation: ${annotationId}`);
+			if (existing.chyron?.locked)
+				return failure("This chyron is locked. Preserve the manual edit.");
 			const { startMs, endMs } = resolveSpanMs(existing, parsed.data.startSec, parsed.data.endSec);
 			const rebuiltAnnotations = replacePillSpan(
 				document.annotations.map((a) =>
 					annPill.has(a.id)
 						? {
 								...a,
+								...(parsed.data.chyron
+									? { chyron: chyronSchema.parse({ ...a.chyron, ...parsed.data.chyron }) }
+									: {}),
 								...(parsed.data.text !== undefined
-									? { content: parsed.data.text, textContent: parsed.data.text }
+									? {
+											content: parsed.data.text,
+											textContent: parsed.data.text,
+											...(a.chyron
+												? {
+														chyron: chyronSchema.parse({
+															...a.chyron,
+															...parsed.data.chyron,
+															headline: parsed.data.text,
+														}),
+													}
+												: {}),
+										}
 									: {}),
 							}
 						: a,
@@ -2253,4 +2292,82 @@ export function executeAgentTool(
 		default:
 			return failure(`Unknown tool: ${name}`);
 	}
+}
+
+/** Every tool, including structural edits, must preserve locked authored regions. */
+export function executeAgentTool(
+	document: AxcutDocument,
+	name: string,
+	rawArgs: string,
+	options?: AgentToolOptions,
+): AgentToolExecution {
+	let result: AgentToolExecution;
+	try {
+		if (options?.editsAllowed === false && isMutatingTool(name))
+			return consentRequired(name, JSON.parse(rawArgs || "{}"));
+		if (name === "setComposition") {
+			const parsed = setCompositionArgs.safeParse(JSON.parse(rawArgs));
+			if (!parsed.success) return failure(parsed.error.message);
+			if (document.legacyEditor?.plStyleLocked) return failure("Composition style is locked.");
+			const v = parsed.data;
+			let next =
+				v.presenterToCornerAtSec === undefined
+					? document
+					: presenterToCorner(document, v.presenterToCornerAtSec, v.transitionMs ?? 600);
+			next = patchEditorSettings(next, {
+				aspectRatio: v.aspectRatio,
+				webcamLayoutPreset: v.layout,
+				padding: v.padding,
+				borderRadius: v.borderRadius,
+				audioGainDb: v.audioGainDb,
+				...(v.cameraCorner
+					? {
+							webcamPosition: {
+								cx: v.cameraCorner.endsWith("right") ? 0.85 : 0.15,
+								cy: v.cameraCorner.startsWith("bottom") ? 0.82 : 0.18,
+							},
+						}
+					: {}),
+			});
+			if (v.captionsEnabled !== undefined || v.captionSize !== undefined)
+				next = patchCaptionSettings(next, {
+					...(v.captionsEnabled !== undefined ? { enabled: v.captionsEnabled } : {}),
+					...(v.captionSize !== undefined
+						? { fontSize: v.captionSize, fontFamily: "SF Pro Text" }
+						: {}),
+				});
+			result = {
+				ok: true,
+				document: next,
+				resultJson: JSON.stringify(v),
+				summary: `Updated composition: ${Object.keys(v).join(", ")}`,
+			};
+		} else result = executeUnlockedAgentTool(document, name, rawArgs, options);
+	} catch (error) {
+		return failure(error instanceof Error ? error.message : String(error));
+	}
+	const next = result.document;
+	if (!next) return result;
+	const locked = [
+		...document.annotations.filter((a) => a.chyron?.locked),
+		...document.zoomRanges.filter((z) => z.locked),
+	];
+	const stable = (value: (typeof locked)[number]) => {
+		const { startMs: _start, endMs: _end, ...payload } = value;
+		return JSON.stringify(payload);
+	};
+	for (const region of locked) {
+		const candidate = [...next.annotations, ...next.zoomRanges].find((r) => r.id === region.id);
+		if (!candidate || stable(candidate) !== stable(region))
+			return failure(`Locked region ${region.id} must remain unchanged.`);
+		const newCut = next.timeline.trimRanges.some(
+			(trim) =>
+				!document.timeline.trimRanges.some((old) => JSON.stringify(old) === JSON.stringify(trim)) &&
+				trim.clipId === region.clipId &&
+				trim.startSec < (region.sourceEndSec ?? 0) &&
+				trim.endSec > (region.sourceStartSec ?? Infinity),
+		);
+		if (newCut) return failure(`This cut overlaps locked region ${region.id}.`);
+	}
+	return result;
 }

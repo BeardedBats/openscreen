@@ -351,5 +351,8 @@
 	},
 	"trim": {
 		"deleteRegion": "Удалить область обрезки"
+	},
+	"chyrons": {
+		"title": "Chyrons"
 	}
 }

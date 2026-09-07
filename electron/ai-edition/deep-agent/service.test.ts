@@ -71,6 +71,7 @@ const ARGS: Record<string, unknown> = {
 	setZoom: { zoomId: "zoom_nope" },
 	addSpeed: { startSec: 1, endSec: 2 },
 	setSpeed: { speedId: "speed_nope" },
+	setComposition: { aspectRatio: "9:16" },
 	addAnnotation: { startSec: 1, endSec: 2, text: "hi" },
 	setAnnotation: { annotationId: "ann_nope" },
 	addCameraFullscreen: { startSec: 1, endSec: 2 },

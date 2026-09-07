@@ -351,5 +351,8 @@
 	},
 	"trim": {
 		"deleteRegion": "Xóa vùng cắt"
+	},
+	"chyrons": {
+		"title": "Chyrons"
 	}
 }

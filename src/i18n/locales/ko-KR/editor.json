@@ -98,9 +98,9 @@
 		"changeLanguage": "언어 변경",
 		"editorMode": "편집기 모드",
 		"modes": {
-			"media": "미디어",
+			"media": "Import",
 			"edit": "편집",
-			"rec": "녹화"
+			"rec": "Record"
 		}
 	},
 	"rec": {

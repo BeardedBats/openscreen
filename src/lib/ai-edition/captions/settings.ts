@@ -430,7 +430,16 @@ export function getCaptionSettings(
 	aspectValue = 16 / 9,
 ): CaptionSettings {
 	const raw = storedCaptions(doc);
-	const d = DEFAULT_CAPTION_SETTINGS;
+	const d: CaptionSettings = doc?.legacyEditor?.plStudioVersion
+		? {
+				...DEFAULT_CAPTION_SETTINGS,
+				fontFamily: "SF Pro Text",
+				fontSize: 36,
+				fontWeight: "normal",
+				backgroundColor: "#091421",
+				backgroundOpacity: 0.85,
+			}
+		: DEFAULT_CAPTION_SETTINGS;
 	const defaultInsetY = defaultCaptionInsetY(aspectValue);
 	if (!raw) return { ...d, insetY: defaultInsetY, insetX: defaultCaptionInsetX(aspectValue) };
 

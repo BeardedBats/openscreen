@@ -185,6 +185,7 @@ describe("the mutating-tool table", () => {
 				"removeTrim",
 				"replaceTimeline",
 				"setAnnotation",
+				"setComposition",
 				"setAudio",
 				"setCameraFullscreen",
 				"setClipRange",

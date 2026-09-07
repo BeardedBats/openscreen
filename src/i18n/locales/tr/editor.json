@@ -98,9 +98,9 @@
 		"changeLanguage": "Dili değiştir",
 		"editorMode": "Düzenleyici modu",
 		"modes": {
-			"media": "Medya",
+			"media": "Import",
 			"edit": "Düzenle",
-			"rec": "Kayıt"
+			"rec": "Record"
 		}
 	},
 	"rec": {

@@ -17,6 +17,7 @@ import { z } from "zod";
 // Relative, not `@/`: the Electron main bundle imports this module and
 // vite-plugin-electron builds it without the root resolve.alias.
 import { toAspectRatioToken } from "../../../utils/aspectRatioUtils";
+import { chyronSchema } from "../../pl-studio/schema";
 // Cycle-safe: `document/ids` only pulls `uuid`, and `timeline/timelineMap`'s
 // transitive value-imports (region-ventilation, virtual-preview) import from this
 // module TYPE-ONLY, so requiring them here never re-enters schema at runtime.
@@ -450,6 +451,7 @@ export const annotationRegionSchema = endGteStart(
 		type: z.enum(["text", "image", "figure", "blur"]),
 		content: z.string().default(""),
 		textContent: z.string().optional(),
+		chyron: chyronSchema.optional(),
 		imageContent: z.string().optional(),
 		position: z.object({
 			x: z.number().min(0).max(100),
@@ -488,6 +490,10 @@ export const zoomRegionSchema = endGteStart(
 			cy: z.number().min(0).max(1),
 		}),
 		focusMode: z.enum(["manual", "auto"]).optional(),
+		locked: z.boolean().optional(),
+		entryMs: z.number().min(0).max(3000).optional(),
+		exitMs: z.number().min(0).max(3000).optional(),
+		easing: z.enum(["smooth", "linear", "cut"]).optional(),
 		rotationPreset: z.enum(["iso", "left", "right"]).optional(),
 		customScale: z.number().positive().optional(),
 		source: z.enum(["auto", "manual"]).optional(),
@@ -1128,7 +1134,19 @@ export function createEmptyDocument(
 		annotations: [],
 		zoomRanges: [],
 		audioTracks: [],
-		legacyEditor: null,
+		legacyEditor: {
+			plStudioVersion: 1,
+			wallpaper: "#091421",
+			padding: 28,
+			borderRadius: 24,
+			shadowIntensity: 0.18,
+			motionBlurAmount: 0,
+			cursorClickBounce: 0,
+			cursorSize: 1.5,
+			cursorSmoothing: 0.35,
+			webcamReactiveZoom: false,
+			plGlossary: "Pitcher List\nPL Pro\nPLV\nProcess+\nNick Pollack",
+		},
 	});
 }
 

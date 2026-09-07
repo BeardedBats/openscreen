@@ -133,3 +133,7 @@ workbench/fixtures/
 /aur_ci.pub
 /aur_known_hosts
 tmp_handoff.md
+
+# Local verification media and isolated Electron data.
+/artifacts/
+/pl-browser-*.png

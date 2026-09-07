@@ -44,7 +44,7 @@ describe("axcut-schema v7", () => {
 		expect(doc.zoomRanges).toEqual([]);
 		expect(doc.audioTracks).toEqual([]);
 		expect(doc.transcripts).toEqual([]);
-		expect(doc.legacyEditor).toBeNull();
+		expect(doc.legacyEditor).toMatchObject({ plStudioVersion: 1, motionBlurAmount: 0 });
 	});
 
 	it("ensureDocument rejects garbage", () => {

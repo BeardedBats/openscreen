@@ -359,6 +359,19 @@ export async function runChat(
 		recordMessageCheckpoint(projectId, sessionId, userMessage.id, documentForCheckpoint);
 	}
 	userMessage.checkpointId = documentForCheckpoint ? userMessage.id : null;
+	if (workingDocument) {
+		// A bounded durable revision travels with every tool-produced document. Exclude the
+		// previous revision to avoid recursively growing project files on successive passes.
+		const { plAiRevision: _previous, ...legacy } = workingDocument.legacyEditor ?? {};
+		const snapshot = { ...workingDocument, legacyEditor: legacy };
+		workingDocument = {
+			...workingDocument,
+			legacyEditor: {
+				...workingDocument.legacyEditor,
+				plAiRevision: { version: 1, createdAt: new Date().toISOString(), document: snapshot },
+			},
+		};
+	}
 
 	session.messages.push(userMessage);
 

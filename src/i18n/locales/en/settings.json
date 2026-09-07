@@ -351,5 +351,8 @@
 	},
 	"trim": {
 		"deleteRegion": "Delete Trim Region"
+	},
+	"chyrons": {
+		"title": "Chyrons"
 	}
 }

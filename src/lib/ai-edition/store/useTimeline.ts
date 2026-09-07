@@ -508,7 +508,15 @@ export function useTimeline() {
 					cameraFullscreenRegions: [
 						...prev,
 						...anchorRegionsWithDerivedMs(
-							[{ id: createId("camfull"), startMs: timeMs, endMs }],
+							[
+								{
+									id: createId("camfull"),
+									startMs: timeMs,
+									endMs,
+									transitionMs: 600,
+									startFullscreen: timeMs === 0,
+								},
+							],
 							document.timeline.clips,
 							() => createId("camfull"),
 						),

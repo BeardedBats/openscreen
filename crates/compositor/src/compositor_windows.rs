@@ -2053,7 +2053,8 @@ impl Compositor {
         // `source_t`, la même base de temps que les zoom/speed regions : le temps SOURCE du clip,
         // pas le compteur de frames. C'est ce qui garde une annotation alignée sur l'image quand
         // une speed region répète ou saute des frames.
-        self.draw_annotations(scene_ref.as_ref(), source_t, s_ann);
+        let click_ring = cursor_ref.as_ref().and_then(|track| crate::frame_geometry::click_ring(&g, &crate::frame_geometry::CursorPlanInput {render_px: [self.rw(), self.rh()], u_max, v_max, cfg, live: lp, scene: scene_ref.as_ref(), track, t: self.cursor_t_override.borrow().unwrap_or(frame / FPS)}));
+        self.draw_annotations(scene_ref.as_ref(), source_t, s_ann, click_ring.as_ref());
         Ok(())
     }
 
@@ -2068,9 +2069,9 @@ impl Compositor {
     /// Seule la « figure » (flèche) est rendue à ce stade ; texte, image et flou suivront. Les
     /// types non gérés sont ignorés silencieusement plutôt que dessinés de travers : mieux vaut
     /// l'absence connue qu'un placeholder qui ferait croire à un bug de style.
-    unsafe fn draw_annotations(&self, scene: Option<&Scene>, t: f32, s_ann: [f32; 4]) {
+    unsafe fn draw_annotations(&self, scene: Option<&Scene>, t: f32, s_ann: [f32; 4], click_ring: Option<&crate::scene::SceneAnnotation>) {
         let Some(scene) = scene else { return };
-        if scene.annotations.is_empty() {
+        if scene.annotations.is_empty() && click_ring.is_none() {
             return;
         }
         let visible = |a: &crate::scene::SceneAnnotation| {
@@ -2091,7 +2092,7 @@ impl Compositor {
         }
         // La liste arrive déjà triée par zIndex croissant côté app, donc l'ordre d'itération EST
         // l'ordre de peinture — pas de tri par frame.
-        for annotation in &scene.annotations {
+        for annotation in click_ring.into_iter().chain(scene.annotations.iter()) {
             if !visible(annotation) {
                 continue;
             }
@@ -2180,12 +2181,12 @@ impl Compositor {
                     let key = annotation.id.clone();
                     let cached = {
                         let cache = self.ann_img_cache.borrow();
-                        cache.get(&key).filter(|(_, _, _, len)| *len == src.len()).cloned()
+                        cache.get(&key).filter(|(_, _, _, len)| *len == crate::scene::image_cache_key(src)).cloned()
                     };
                     let Some((srv, iw, ih, _)) = cached.or_else(|| {
                         match self.load_image_srv(src) {
                             Ok((srv, w, h)) => {
-                                let entry = (srv, w, h, src.len());
+                                let entry = (srv, w, h, crate::scene::image_cache_key(src));
                                 self.ann_img_cache.borrow_mut().insert(key, entry.clone());
                                 Some(entry)
                             }
@@ -2203,6 +2204,7 @@ impl Compositor {
                     // `object-contain`, comme la preview : mise à l'échelle uniforme pour tenir
                     // DANS la boîte, centrée. On rétrécit le rect de destination au ratio de
                     // l'image plutôt que de recadrer la source, ce qui donne exactement ça.
+                    let anim = annotation.image_motion(t);
                     let box_aspect = quad_px[0] / quad_px[1];
                     let img_aspect = iw as f32 / ih as f32;
                     let (fit_w, fit_h) = if img_aspect > box_aspect {
@@ -2211,21 +2213,21 @@ impl Compositor {
                         (dst[2] * (img_aspect / box_aspect), dst[3])
                     };
                     let fit = [
-                        dst[0] + (dst[2] - fit_w) * 0.5,
+                        dst[0] + (dst[2] - fit_w) * 0.5 + anim.translate_x * self.rh() / 1080.0 / self.rw(),
                         dst[1] + (dst[3] - fit_h) * 0.5,
-                        fit_w,
+                        fit_w * anim.reveal,
                         fit_h,
                     ];
                     self.ctx.PSSetShaderResources(2, Some(&[Some(srv)]));
                     self.draw_solid(&LayerCB {
                         dst: fit,
-                        src: [0.0, 0.0, 1.0, 1.0],
+                        src: [0.0, 0.0, anim.reveal, 1.0],
                         quad_px: [fit_w * self.rw(), fit_h * self.rh()],
                         // mode 7 = sprite RGBA avec alpha, déjà utilisé par les thèmes de curseur :
                         // exactement ce qu'il faut ici, donc aucun shader de plus. `fx` est son
                         // rect de clip — plein cadre, pour ne rien découper.
                         mode: 7.0,
-                        color: [1.0, 1.0, 1.0, 1.0],
+                        color: [1.0, 1.0, 1.0, anim.opacity],
                         fx: [0.0, 0.0, 1.0, 1.0],
                         ..Default::default()
                     });

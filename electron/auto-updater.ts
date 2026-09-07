@@ -9,6 +9,7 @@
 // projects, and the ~500 MB STT model — which is exactly what we want.
 
 import { app } from "electron";
+import { FORK_UPDATES_ENABLED } from "./fork-identity";
 import type { InstallChannel } from "./install-channel";
 import { ownsItsUpdates } from "./install-channel";
 
@@ -56,6 +57,7 @@ async function getUpdater() {
 
 /** Is an update available, and can this install apply it itself? */
 export async function checkForSelfUpdate(channel: InstallChannel): Promise<UpdateOutcome> {
+	if (!FORK_UPDATES_ENABLED) return { kind: "unsupported" };
 	if (!ownsItsUpdates(channel) || !app.isPackaged) return { kind: "unsupported" };
 	try {
 		const autoUpdater = await getUpdater();
@@ -73,6 +75,7 @@ export async function checkForSelfUpdate(channel: InstallChannel): Promise<Updat
 
 /** Download the pending update. Separate from the check so the user approves the transfer. */
 export async function downloadSelfUpdate(): Promise<UpdateOutcome> {
+	if (!FORK_UPDATES_ENABLED) return { kind: "unsupported" };
 	try {
 		const autoUpdater = await getUpdater();
 		await autoUpdater.downloadUpdate();
@@ -84,6 +87,7 @@ export async function downloadSelfUpdate(): Promise<UpdateOutcome> {
 
 /** Quit and hand over to the installer. Callers MUST have checked `blockedFromInstalling`. */
 export async function installSelfUpdate(): Promise<void> {
+	if (!FORK_UPDATES_ENABLED) return;
 	const autoUpdater = await getUpdater();
 	// isSilent=false so a per-machine Windows install can show its elevation prompt: a silent
 	// upgrade of a Program Files install hits UAC and, if the user dismisses it, quits having

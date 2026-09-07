@@ -52,6 +52,7 @@ import {
 	resolveWebcamLayoutPreset,
 	type WebcamCompositeLayout,
 } from "@/lib/compositeLayout";
+import { chyronGeometry } from "@/lib/pl-studio/rasterize";
 import { classifyWallpaper, resolveImageWallpaperUrl } from "@/lib/wallpaper";
 import { getCssClipPath } from "@/lib/webcamMaskShapes";
 import { computeCameraFullscreenProgress } from "@/lib/zoomMath/cameraFullscreenUtils";
@@ -59,6 +60,7 @@ import { clamp, clamp01 } from "@/utils/math";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { NativeCompositorOverlay } from "./NativeCompositorOverlay";
 import styles from "./NewEditorShell.module.css";
+import { PLZoomTarget } from "./PLZoomTarget";
 import { type VideoSource, VirtualPreview } from "./VirtualPreview";
 import { WebcamOverlay } from "./WebcamOverlay";
 import { ZoomFocusOverlay } from "./ZoomFocusOverlay";
@@ -413,8 +415,35 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
 			    hitbox) still render on top as normal DOM so they stay clickable. No more
 			    dual preview path. */}
 			<NativeCompositorOverlay />
+			{props.annotationRegions &&
+			props.onSelectAnnotation &&
+			props.onAnnotationPositionChange &&
+			props.onAnnotationSizeChange &&
+			props.onAnnotationCommit ? (
+				<AnnotationLayer
+					annotations={props.annotationRegions
+						.filter((a) => a.chyron)
+						.map((a) => {
+							const g = chyronGeometry(a, frameSize.width / frameSize.height);
+							return {
+								...a,
+								position: { x: g.x, y: g.y },
+								size: { width: g.width, height: g.height },
+							};
+						})}
+					selectedAnnotationId={props.selectedAnnotationId ?? null}
+					currentTimeSec={props.currentTimeSec}
+					containerWidth={frameSize.width}
+					containerHeight={frameSize.height}
+					onSelectAnnotation={props.onSelectAnnotation}
+					onPositionChange={props.onAnnotationPositionChange}
+					onSizeChange={props.onAnnotationSizeChange}
+					onCommit={props.onAnnotationCommit}
+				/>
+			) : null}
 			{layout?.screenRect ? (
 				<div className={styles.screenStage} style={screenStyle}>
+					<PLZoomTarget />
 					{(() => {
 						// ponytail: PreviewCompositor (Pixi v8) regressed the screen
 						// preview — the `<video>` is `visibility: hidden` while it's
@@ -451,7 +480,7 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
 					props.onAnnotationSizeChange &&
 					props.onAnnotationCommit ? (
 						<AnnotationLayer
-							annotations={props.annotationRegions}
+							annotations={props.annotationRegions.filter((a) => !a.chyron)}
 							selectedAnnotationId={props.selectedAnnotationId ?? null}
 							currentTimeSec={props.currentTimeSec}
 							containerWidth={layout.screenRect.width}

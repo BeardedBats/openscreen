@@ -98,9 +98,9 @@
 		"changeLanguage": "Change language",
 		"editorMode": "Editor mode",
 		"modes": {
-			"media": "Media",
+			"media": "Import",
 			"edit": "Edit",
-			"rec": "Rec"
+			"rec": "Record"
 		}
 	},
 	"rec": {

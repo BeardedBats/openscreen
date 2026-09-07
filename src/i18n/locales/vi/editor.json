@@ -98,9 +98,9 @@
 		"changeLanguage": "Đổi ngôn ngữ",
 		"editorMode": "Chế độ trình chỉnh sửa",
 		"modes": {
-			"media": "Media",
+			"media": "Import",
 			"edit": "Chỉnh sửa",
-			"rec": "Ghi hình"
+			"rec": "Record"
 		}
 	},
 	"rec": {

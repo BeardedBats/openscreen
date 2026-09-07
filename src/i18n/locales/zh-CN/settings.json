@@ -351,5 +351,8 @@
 	},
 	"trim": {
 		"deleteRegion": "删除剪辑区域"
+	},
+	"chyrons": {
+		"title": "Chyrons"
 	}
 }

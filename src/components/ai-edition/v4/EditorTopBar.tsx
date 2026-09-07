@@ -14,7 +14,6 @@ import {
 	Sun,
 } from "lucide-react";
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef, useState } from "react";
-import logoMark from "@/assets/openscreen-mark.png";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useTheme } from "@/hooks/useTheme";
 import { getAvailableLocales, getLocaleName, getLocaleShort } from "@/i18n/loader";
@@ -385,14 +384,16 @@ function AppMenu({ actions }: { actions: TopBarActions }) {
 				className={`${styles.brand} ${styles.brandBtn}`}
 				aria-haspopup="menu"
 				aria-expanded={open}
-				aria-label="OpenScreen"
-				title="OpenScreen"
+				aria-label="PL Demo Studio"
+				title="PL Demo Studio"
 				onClick={() => setOpen((v) => !v)}
 			>
 				{/* Decorative: the wordmark beside it already names the app — and, being the
 				    button's only text, is also its accessible name. */}
-				<img src={logoMark} alt="" draggable={false} />
-				<span className={styles.name}>OpenScreen</span>
+				<span aria-hidden style={{ color: "var(--accent)", fontWeight: 700 }}>
+					PL
+				</span>
+				<span className={styles.name}>Demo Studio</span>
 				<ChevronDown size={13} className={styles.brandChevron} aria-hidden />
 			</button>
 			{open ? (

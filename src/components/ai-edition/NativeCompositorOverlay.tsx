@@ -21,6 +21,7 @@ import {
 	getWebcamNativeSizeRevision,
 	subscribeWebcamNativeSize,
 } from "@/native/webcamSizeCache";
+import { useZoomTarget } from "./PLZoomTarget";
 
 /**
  * POC Option A — preview rendue par le compositeur D3D11 natif (`compositor_view.node`),
@@ -46,6 +47,7 @@ import {
  * éléments DOM cliquables au-dessus.
  */
 export function NativeCompositorOverlay() {
+	const drawingZoom = useZoomTarget((s) => s.id);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const previousActiveClipIdRef = useRef<string | null>(null);
 	const document = useProjectStore((s) => s.document);
@@ -145,6 +147,9 @@ export function NativeCompositorOverlay() {
 		try {
 			const webcamSourceSize = cameraPath ? getWebcamNativeSize(cameraPath) : null;
 			const scene = buildSceneDescription(document, webcamSourceSize);
+			// Draw against the original screen coordinates. This is temporary preview input,
+			// never an authored effect, and the saved zoom returns on apply or cancellation.
+			if (drawingZoom) scene.zoomRegions = [];
 			setNativeScene(JSON.stringify(scene));
 		} catch (error) {
 			console.warn("[compositor-view] build/push scene failed:", error);
@@ -154,7 +159,7 @@ export function NativeCompositorOverlay() {
 		// re-read fresh via getWebcamNativeSize() above on every run (biome flags this as
 		// an "unnecessary" dependency, but removing it would mean a probed webcam size
 		// arriving after mount never gets pushed to native).
-	}, [viewId, document, sources, _webcamSizeRevision]);
+	}, [viewId, document, sources, _webcamSizeRevision, drawingZoom]);
 
 	// SYNCHRO COMPLETE DES PARAMS, en un seul endroit.
 	//

@@ -177,13 +177,13 @@ function Pane({ title, icon, helpText, actions, onClose, children }: PaneProps) 
 							right: 8,
 							zIndex: 60,
 							maxWidth: 240,
-							padding: "10px 12px",
+							padding: "14px 14px",
 							background: "var(--surface)",
 							border: "1px solid var(--border)",
 							borderRadius: "var(--r-md)",
 							boxShadow: "var(--elev-pop)",
 							color: "var(--fg-2)",
-							font: "400 12px/1.5 var(--font-body)",
+							font: "400 14px/1.5 var(--font-body)",
 						}}
 						onClick={() => setHelpOpen(false)}
 					>
@@ -490,7 +490,7 @@ function BackgroundColorTab({
 	};
 	return (
 		<>
-			<div className={styles.bgGrid} style={{ margin: "0 var(--sp-4) 12px" }}>
+			<div className={styles.bgGrid} style={{ margin: "0 var(--sp-4) 14px" }}>
 				{COLOR_PALETTE.map((c) => (
 					<button
 						type="button"
@@ -510,7 +510,7 @@ function BackgroundColorTab({
 			</div>
 			<div
 				style={{
-					margin: "0 var(--sp-4) 12px",
+					margin: "0 var(--sp-4) 14px",
 					display: "flex",
 					alignItems: "center",
 					gap: 8,
@@ -546,9 +546,9 @@ function BackgroundColorTab({
 						border: "1px solid var(--border)",
 						borderRadius: 8,
 						background: "var(--surface)",
-						padding: "0 12px",
+						padding: "0 14px",
 						color: "var(--fg-2)",
-						font: "500 13px var(--font-mono)",
+						font: "500 14px var(--font-mono)",
 					}}
 				/>
 			</div>
@@ -992,7 +992,7 @@ export function TranscriptPane({
 					}}
 				>
 					<FileText size={28} style={{ color: "var(--dim)" }} />
-					<p style={{ font: "500 13px var(--font-body)", color: "var(--fg-2)" }}>
+					<p style={{ font: "500 14px var(--font-body)", color: "var(--fg-2)" }}>
 						{placements.length === 0
 							? ts("transcript.noClips")
 							: isTranscribing
@@ -1001,7 +1001,7 @@ export function TranscriptPane({
 									? ts("transcript.noAudio")
 									: ts("transcript.noTranscript")}
 					</p>
-					<p style={{ font: "400 12px var(--font-body)", color: "var(--muted)", maxWidth: 260 }}>
+					<p style={{ font: "400 14px var(--font-body)", color: "var(--muted)", maxWidth: 260 }}>
 						{blocked?.reason === "failed" && blocked.message
 							? blocked.message
 							: ts("transcript.whisperHint")}
@@ -1036,7 +1036,7 @@ export function TranscriptPane({
 				style={{
 					margin: 0,
 					padding: "2px 4px 6px",
-					font: "400 12px/1.5 var(--font-body)",
+					font: "400 14px/1.5 var(--font-body)",
 					color: "var(--muted)",
 				}}
 			>
@@ -1427,7 +1427,7 @@ const TranscriptClipBlock = memo(function TranscriptClipBlock({
 						background: "var(--accent-soft)",
 						color: "var(--accent)",
 						borderRadius: "var(--r-sm)",
-						font: "700 12px/1 var(--font-mono)",
+						font: "700 14px/1 var(--font-mono)",
 						flexShrink: 0,
 					}}
 				>
@@ -1437,7 +1437,7 @@ const TranscriptClipBlock = memo(function TranscriptClipBlock({
 					<span
 						style={{
 							display: "block",
-							font: "600 13px/1.2 var(--font-body)",
+							font: "600 14px/1.2 var(--font-body)",
 							color: "var(--fg)",
 							overflow: "hidden",
 							textOverflow: "ellipsis",
@@ -1449,7 +1449,7 @@ const TranscriptClipBlock = memo(function TranscriptClipBlock({
 					<span
 						style={{
 							display: "block",
-							font: "400 11px/1.3 var(--font-mono)",
+							font: "400 14px/1.3 var(--font-mono)",
 							color: "var(--muted)",
 							marginTop: 2,
 						}}
@@ -1466,7 +1466,7 @@ const TranscriptClipBlock = memo(function TranscriptClipBlock({
 							alignItems: "center",
 							gap: 5,
 							flexShrink: 0,
-							font: "500 11px/1 var(--font-body)",
+							font: "500 14px/1 var(--font-body)",
 							color: "var(--accent)",
 						}}
 					>
@@ -1480,7 +1480,7 @@ const TranscriptClipBlock = memo(function TranscriptClipBlock({
 					style={{
 						margin: 0,
 						padding: "4px 4px",
-						font: "400 12px/1.5 var(--font-body)",
+						font: "400 14px/1.5 var(--font-body)",
 						color: "var(--muted)",
 						fontStyle: "italic",
 					}}
@@ -1507,7 +1507,7 @@ const TranscriptClipBlock = memo(function TranscriptClipBlock({
 						// piece. The block that fronts a run still owns the header above it.
 						display: "inline",
 						padding: "4px 4px",
-						font: "400 13px/1.65 var(--font-body)",
+						font: "400 14px/1.65 var(--font-body)",
 						color: "var(--fg)",
 						textWrap: "pretty",
 						// Read-only while its transcript is being regenerated: the cursor
@@ -1676,11 +1676,11 @@ const TranscriptWord = memo(function TranscriptWord({
 						alignItems: "center",
 						margin: "0 3px 2px 0",
 						padding: "1px 6px",
-						borderRadius: 999,
+						borderRadius: 0,
 						border: "1px solid var(--danger)",
 						background: "var(--danger-soft)",
 						color: "var(--danger)",
-						font: "600 11px/1.5 var(--font-mono)",
+						font: "600 14px/1.5 var(--font-mono)",
 						textDecoration: "line-through",
 						cursor: "pointer",
 					}}
@@ -1709,11 +1709,11 @@ const TranscriptWord = memo(function TranscriptWord({
 					alignItems: "center",
 					margin: "0 3px 2px 0",
 					padding: "1px 6px",
-					borderRadius: 999,
+					borderRadius: 0,
 					border: "1px dashed var(--border-hi)",
 					background: "transparent",
 					color: "var(--muted)",
-					font: "500 11px/1.5 var(--font-mono)",
+					font: "500 14px/1.5 var(--font-mono)",
 					cursor: "pointer",
 				}}
 			>
@@ -1807,11 +1807,11 @@ const TranscriptWord = memo(function TranscriptWord({
 						alignItems: "center",
 						margin: "0 3px 2px 0",
 						padding: "1px 7px",
-						borderRadius: 999,
+						borderRadius: 0,
 						border: "1px solid var(--warn)",
 						background: "var(--warn-soft)",
 						color: "var(--warn)",
-						font: "600 12px/1.5 var(--font-body)",
+						font: "600 14px/1.5 var(--font-body)",
 						textDecoration: removed ? "line-through" : "none",
 					}}
 				>
@@ -1857,11 +1857,11 @@ const TranscriptWord = memo(function TranscriptWord({
 						alignItems: "center",
 						margin: "0 3px 2px 0",
 						padding: "1px 6px",
-						borderRadius: 999,
+						borderRadius: 0,
 						border: "1px dashed var(--border-hi)",
 						background: "var(--surface-2)",
 						color: "var(--muted)",
-						font: "500 11px/1.5 var(--font-mono)",
+						font: "500 14px/1.5 var(--font-mono)",
 						fontStyle: "italic",
 					}}
 				>
@@ -2071,7 +2071,7 @@ function InsertionField({
 				margin: "0 3px 2px 0",
 				padding: "0 5px",
 				border: "1px solid var(--warn)",
-				borderRadius: 999,
+				borderRadius: 0,
 				background: "var(--warn-soft)",
 				color: "var(--fg)",
 				font: "inherit",
@@ -2832,7 +2832,7 @@ export function LayoutPane() {
 							// autorise la piste a passer sous son contenu.
 							gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
 							gap: 8,
-							padding: "0 var(--sp-4) 12px",
+							padding: "0 var(--sp-4) 14px",
 						}}
 					>
 						{CAMERA_SHAPES.map((shape) => {
@@ -2871,7 +2871,7 @@ export function LayoutPane() {
 									>
 										{shape.icon}
 									</svg>
-									<span title={ts(shape.labelKey)} style={{ font: "500 11px/1 var(--font-body)" }}>
+									<span title={ts(shape.labelKey)} style={{ font: "500 14px/1 var(--font-body)" }}>
 										{ts(shape.labelKey)}
 									</span>
 								</button>
@@ -2915,7 +2915,7 @@ export function LayoutPane() {
 							display: "grid",
 							gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
 							gap: 8,
-							padding: "0 var(--sp-4) 12px",
+							padding: "0 var(--sp-4) 14px",
 						}}
 					>
 						{CAMERA_BACKGROUND_MODES.map((mode) => {
@@ -2948,7 +2948,7 @@ export function LayoutPane() {
 									>
 										{mode.icon}
 									</svg>
-									<span title={ts(mode.labelKey)} style={{ font: "500 11px/1 var(--font-body)" }}>
+									<span title={ts(mode.labelKey)} style={{ font: "500 14px/1 var(--font-body)" }}>
 										{ts(mode.labelKey)}
 									</span>
 								</button>
@@ -2970,7 +2970,7 @@ export function LayoutPane() {
 						</div>
 					) : null}
 					{settings.webcamBackgroundMode === "custom" ? (
-						<div style={{ padding: "0 var(--sp-4) 12px" }}>
+						<div style={{ padding: "0 var(--sp-4) 14px" }}>
 							<WallpaperPicker
 								value={settings.webcamWallpaper}
 								hasDocument={hasDocument && !layoutControlsDisabled}
@@ -3113,7 +3113,7 @@ export function AudioTrackPane({ tl, onClose }: { tl: TimelineApi; onClose?: () 
 		border: "1px solid var(--danger)",
 		background: "var(--danger-soft)",
 		color: "var(--danger)",
-		font: "600 13px var(--font-display)",
+		font: "600 14px var(--font-display)",
 		cursor: "pointer",
 	};
 
@@ -3127,13 +3127,13 @@ export function AudioTrackPane({ tl, onClose }: { tl: TimelineApi; onClose?: () 
 			<div
 				title={fileName}
 				style={{
-					fontSize: 13,
+					fontSize: 14,
 					fontWeight: 600,
 					color: "var(--fg)",
 					overflow: "hidden",
 					textOverflow: "ellipsis",
 					whiteSpace: "nowrap",
-					margin: "0 0 10px",
+					margin: "0 0 14px",
 				}}
 			>
 				{fileName}

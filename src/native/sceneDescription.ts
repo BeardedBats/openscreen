@@ -52,6 +52,14 @@ import {
 	webcamSizeToFraction,
 } from "@/lib/compositeLayout";
 import { parseCssGradient, resolveLinearGradientAngle } from "@/lib/exporter/gradientParser";
+import { clickFeedbackScene } from "@/lib/pl-studio/clickFeedback";
+import {
+	chyronGeometry,
+	rasterizeCaption,
+	rasterizeChyron,
+	studioReferenceSize,
+} from "@/lib/pl-studio/rasterize";
+import type { Chyron } from "@/lib/pl-studio/schema";
 import type { CompositorClipInput } from "./contracts";
 
 /** Background behind the screen. Parsed from `settings.wallpaper`. */
@@ -62,6 +70,7 @@ export type SceneBackground =
 
 /** A timeline zoom region (from `document.zoomRanges`). Times in seconds. */
 export interface SceneZoomRegion {
+	motion?: { entryMs: number; exitMs: number; easing: string };
 	/** Stable id — native uses it to pair adjacent regions for connected zoom-pan. */
 	id: string;
 	startSec: number;
@@ -94,6 +103,8 @@ export interface SceneZoomRegion {
 
 /** A "Full Camera" timeline region (from `legacyEditor.cameraFullscreenRegions`). Times in seconds. */
 export interface SceneCameraFullscreenRegion {
+	transitionMs?: number;
+	startFullscreen?: boolean;
 	startSec: number;
 	endSec: number;
 	/** See `SceneZoomRegion.clipIndex`. */
@@ -183,6 +194,7 @@ export interface SceneAnnotation {
 	};
 	/** Present for `kind: "image"` — the authored `imageContent` (path or data URI). */
 	imagePath?: string;
+	chyronMotion?: Pick<Chyron, "entry" | "exit" | "entryMs" | "exitMs">;
 	/** Present for `kind: "figure"`. */
 	figure?: {
 		direction:
@@ -356,6 +368,7 @@ export interface SceneEffects {
 
 /** Cursor rendering, from the editor settings. */
 export interface SceneCursor {
+	clickRing?: { image: string; size: number; durationMs: number };
 	show: boolean;
 	/** Direct scale (1 = default). */
 	size: number;
@@ -1019,6 +1032,7 @@ export function buildSceneDescription(
 			motionBlur: settings.motionBlurAmount,
 		},
 		cursor: {
+			...(clickFeedbackScene(document) ? { clickRing: clickFeedbackScene(document) } : {}),
 			show: settings.cursorShow,
 			size: settings.cursor.size,
 			smoothing: settings.cursor.smoothing,
@@ -1033,6 +1047,15 @@ export function buildSceneDescription(
 		audioTracks,
 		background: parseWallpaper(settings.wallpaper),
 		zoomRegions: projectedZoomRegions.map((region) => ({
+			...(region.entryMs !== undefined || region.exitMs !== undefined || region.easing !== undefined
+				? {
+						motion: {
+							entryMs: region.entryMs ?? 600,
+							exitMs: region.exitMs ?? 600,
+							easing: region.easing ?? "smooth",
+						},
+					}
+				: {}),
 			id: region.id,
 			startSec: region.startMs / 1000,
 			endSec: region.endMs / 1000,
@@ -1057,7 +1080,7 @@ export function buildSceneDescription(
 			// seeding it — that's what `settings.zoom.focusMode.lockedDisclaimer` promises the
 			// user ("turn it off to set focus mode per zoom"), and it's what makes the toolbar
 			// button a one-click "make every zoom follow the cursor".
-			focusMode: settings.autoFocusAll ? "auto" : (region.focusMode ?? null),
+			focusMode: settings.autoFocusAll && !region.locked ? "auto" : (region.focusMode ?? null),
 			rotation: region.rotationPreset ?? null,
 			clipIndex: region.clipIndex,
 			...(region.underTrim ? { underTrim: true } : {}),
@@ -1065,6 +1088,33 @@ export function buildSceneDescription(
 		annotations: projectedAnnotations
 			.map((region) => {
 				const style = region.style;
+				if (region.chyron) {
+					const geometry = chyronGeometry(region, captionAspect);
+					const raster = rasterizeChyron(
+						region.chyron,
+						(studioReferenceSize(captionAspect).width * geometry.width) / 100,
+					);
+					return {
+						id: region.id,
+						startSec: region.startMs / 1000,
+						endSec: region.endMs / 1000,
+						clipIndex: region.clipIndex,
+						kind: "image" as const,
+						space: "frame" as const,
+						x: geometry.x / 100,
+						y: geometry.y / 100,
+						w: geometry.width / 100,
+						h: geometry.height / 100,
+						zIndex: region.zIndex,
+						imagePath: raster.image,
+						chyronMotion: {
+							entry: region.chyron.entry,
+							exit: region.chyron.exit,
+							entryMs: region.chyron.entryMs,
+							exitMs: region.chyron.exitMs,
+						},
+					};
+				}
 				// Only captions carry a space; annotations must keep emitting the exact same keys
 				// they always have, so the field is omitted rather than sent as null/undefined.
 				const space = (region as { space?: "frame" }).space;
@@ -1087,6 +1137,16 @@ export function buildSceneDescription(
 					zIndex: region.zIndex,
 				} as const;
 				if (region.type === "text") {
+					if (space === "frame" && style.fontFamily === "SF Pro Text") {
+						const raster = rasterizeCaption(region, captionAspect, verticalAlign);
+						return {
+							...base,
+							kind: "image" as const,
+							imagePath: raster.image,
+							y: raster.y,
+							h: raster.height,
+						};
+					}
 					return {
 						...base,
 						text: {
@@ -1151,6 +1211,8 @@ export function buildSceneDescription(
 			// Ascending zIndex so the compositor paints in order without sorting per frame.
 			.sort((a, b) => a.zIndex - b.zIndex),
 		cameraFullscreenRegions: projectedCameraFullscreenRegions.map((region) => ({
+			...(region.transitionMs === undefined ? {} : { transitionMs: region.transitionMs }),
+			...(region.startFullscreen ? { startFullscreen: true } : {}),
 			startSec: region.startMs / 1000,
 			endSec: region.endMs / 1000,
 			clipIndex: region.clipIndex,

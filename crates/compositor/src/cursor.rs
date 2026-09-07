@@ -162,6 +162,10 @@ impl CursorTrack {
         sample_at(&self.samples, t)
     }
 
+    pub fn last_click(&self, t: f32) -> Option<f32> {
+        self.clicks.iter().rev().copied().find(|click| *click <= t)
+    }
+
     /// Facteur d'échelle « click bounce » — parité `getNativeCursorClickBounceScale` (TS,
     /// `nativeCursor.ts`) : le curseur PRESSE (rétrécit, 0..38% de la fenêtre d'animation)
     /// PUIS REBONDIT (grossit, 38..100%), pas un simple pop qui ne fait que grossir puis

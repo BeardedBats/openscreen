@@ -98,9 +98,9 @@
 		"changeLanguage": "تغيير اللغة",
 		"editorMode": "وضع المحرر",
 		"modes": {
-			"media": "الوسائط",
+			"media": "Import",
 			"edit": "تحرير",
-			"rec": "تسجيل"
+			"rec": "Record"
 		}
 	},
 	"rec": {

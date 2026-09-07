@@ -183,6 +183,14 @@ fn lerp(a: f32, b: f32, t: f32) -> f32 {
 fn zoom_region_strength(region: &SceneZoomRegion, t: f32) -> f32 {
     let start = region.start_sec as f32;
     let end = region.end_sec as f32;
+    if let Some(motion) = &region.motion {
+        if t < start || t >= end { return 0.0; }
+        let half = (end-start)/2.0;
+        let entry = if motion.easing == "cut" { 0.0 } else { (motion.entry_ms.clamp(0.0,3000.0)/1000.0).min(half) };
+        let exit = if motion.easing == "cut" { 0.0 } else { (motion.exit_ms.clamp(0.0,3000.0)/1000.0).min(half) };
+        let ease = |v:f32| if motion.easing == "linear" {clamp01(v)} else {1.0-(1.0-clamp01(v)).powi(3)};
+        return (if entry>0.0 {ease((t-start)/entry)} else {1.0}).min(if exit>0.0 {ease((end-t)/exit)} else {1.0});
+    }
     if region.under_trim {
         return if t >= start && t < end { 1.0 } else { 0.0 };
     }
@@ -330,6 +338,7 @@ fn connected_pairs(regions: &[SceneZoomRegion]) -> Vec<(usize, usize, f32, f32)>
     let mut pairs = Vec::new();
     for w in order.windows(2) {
         let (ci, ni) = (w[0], w[1]);
+        if regions[ci].motion.is_some() || regions[ni].motion.is_some() { continue; }
         let gap = regions[ni].start_sec as f32 - regions[ci].end_sec as f32;
         if gap <= CHAINED_ZOOM_PAN_GAP_S {
             let transition_start = regions[ci].end_sec as f32;
@@ -432,12 +441,13 @@ pub fn zoom_state_at(regions: &[SceneZoomRegion], t: f32, cursor: Option<&Cursor
 fn camera_fullscreen_region_strength(region: &SceneCameraFullscreenRegion, t: f32) -> f32 {
     let start = region.start_sec as f32;
     let end = region.end_sec as f32;
-    if t <= start || t >= end {
+    if t < start || t >= end {
         return 0.0;
     }
     let half = (end - start) * 0.5;
-    let lead_in = TRANSITION_WINDOW_S.min(half);
-    let lead_out = FULLSCREEN_LEAD_OUT_WINDOW_S.min(half);
+    let transition = region.transition_ms.map(|ms| ms.clamp(0.0, 1500.0) / 1000.0);
+    let lead_in = if region.start_fullscreen { 0.0 } else { transition.unwrap_or(TRANSITION_WINDOW_S).min(half) };
+    let lead_out = transition.unwrap_or(FULLSCREEN_LEAD_OUT_WINDOW_S).min(half);
     let lead_in_end = start + lead_in;
     let lead_out_start = end - lead_out;
     if t < lead_in_end {
@@ -632,6 +642,7 @@ mod zoom_focus_tests {
 
     fn region(scale: f32, focus_x: f32) -> SceneZoomRegion {
         SceneZoomRegion {
+            motion: None,
             id: "z1".into(),
             clip_index: None,
             start_sec: 2.0,

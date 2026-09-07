@@ -222,12 +222,28 @@ pub struct SceneAnnotation {
     #[serde(default)]
     pub image_path: Option<String>,
     #[serde(default)]
+    pub chyron_motion: Option<ChyronMotion>,
+    #[serde(default)]
     pub figure: Option<SceneAnnotationFigure>,
     #[serde(default)]
     pub blur: Option<SceneAnnotationBlur>,
 }
 
 impl SceneAnnotation {
+    pub fn image_motion(&self, t: f32) -> crate::text_anim::TextAnimationState {
+        let Some(m) = &self.chyron_motion else { return crate::text_anim::TextAnimationState::IDLE };
+        let ease = |v: f32| 1.0 - (1.0 - v.clamp(0.0, 1.0)).powi(3);
+        let enter = if m.entry == "cut" { 1.0 } else { ease((t - self.start_sec as f32) * 1000.0 / m.entry_ms.max(1.0)) };
+        let exit = if m.exit == "cut" { 1.0 } else { ease((self.end_sec as f32 - t) * 1000.0 / m.exit_ms.max(1.0)) };
+        crate::text_anim::TextAnimationState {
+            opacity: enter.min(exit),
+            translate_x: if m.entry == "slide" { -18.0 * (1.0 - enter) } else { 0.0 }
+                + if m.exit == "slide" { 18.0 * (1.0 - exit) } else { 0.0 },
+            reveal: (if m.entry == "reveal" { enter } else { 1.0_f32 })
+                .min(if m.exit == "reveal" { exit } else { 1.0 }),
+            ..crate::text_anim::TextAnimationState::IDLE
+        }
+    }
     /// La boîte que `x`/`y`/`w`/`h` — **et** `text.font_size_rel` — mesurent, en fractions de
     /// sortie. Le cadre de sortie est la cible de rendu, donc `[0, 0, 1, 1]` par construction.
     ///
@@ -241,6 +257,23 @@ impl SceneAnnotation {
             _ => screen_dst,
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChyronMotion {
+    pub entry: String,
+    pub exit: String,
+    pub entry_ms: f32,
+    pub exit_ms: f32,
+}
+
+/// Equal byte lengths do not imply equal pixels after a title/color edit.
+pub fn image_cache_key(source: &str) -> usize {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    source.hash(&mut hasher);
+    hasher.finish() as usize
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -312,6 +345,8 @@ pub struct SceneAnnotationPoint {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SceneZoomRegion {
+    #[serde(default)]
+    pub motion: Option<SceneZoomMotion>,
     /// Identifiant stable — nécessaire pour apparier les régions adjacentes (connected pan).
     /// `#[serde(default)]` : champ ajouté après coup.
     #[serde(default)]
@@ -345,6 +380,10 @@ pub struct SceneZoomRegion {
     pub under_trim: bool,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SceneZoomMotion { pub entry_ms: f32, pub exit_ms: f32, pub easing: String }
+
 /// Une zone de vitesse portée par le temps source d'un clip.
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -363,6 +402,10 @@ pub struct SceneSpeedRegion {
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SceneCameraFullscreenRegion {
+    #[serde(default)]
+    pub transition_ms: Option<f32>,
+    #[serde(default)]
+    pub start_fullscreen: bool,
     /// Index du clip dont les temps source portent cette région (voir `SceneZoomRegion`).
     #[serde(default)]
     pub clip_index: Option<usize>,
@@ -394,6 +437,16 @@ pub struct SceneCursor {
     /// `#[serde(default)]` : champ ajouté après coup, absent des JSON de test existants.
     #[serde(default)]
     pub cursor_sprites: std::collections::HashMap<String, SceneCursorSprite>,
+    #[serde(default)]
+    pub click_ring: Option<SceneClickRing>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SceneClickRing {
+    pub image: String,
+    pub size: f32,
+    pub duration_ms: f32,
 }
 
 /// Un sprite de curseur : image + point de pivot.

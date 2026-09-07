@@ -62,6 +62,18 @@ export function computeRegionStrength(
 	timeMs: number,
 	playbackRate = 1,
 ): number {
+	if (region.entryMs !== undefined || region.exitMs !== undefined || region.easing !== undefined) {
+		if (timeMs < region.startMs || timeMs >= region.endMs) return 0;
+		const half = (region.endMs - region.startMs) / 2;
+		const entry = region.easing === "cut" ? 0 : Math.min(half, region.entryMs ?? 600);
+		const exit = region.easing === "cut" ? 0 : Math.min(half, region.exitMs ?? 600);
+		const ease = (v: number) =>
+			region.easing === "linear" ? clamp01(v) : 1 - (1 - clamp01(v)) ** 3;
+		return Math.min(
+			entry ? ease((timeMs - region.startMs) / entry) : 1,
+			exit ? ease((region.endMs - timeMs) / exit) : 1,
+		);
+	}
 	const zoomInWindow = ZOOM_IN_TRANSITION_WINDOW_MS * playbackRate;
 	const zoomOutWindow = TRANSITION_WINDOW_MS * playbackRate;
 	const zoomInEnd = region.startMs + ZOOM_IN_OVERLAP_MS;
@@ -128,6 +140,12 @@ function getConnectedRegionPairs(regions: ZoomRegion[]) {
 	for (let index = 0; index < sortedRegions.length - 1; index += 1) {
 		const currentRegion = sortedRegions[index];
 		const nextRegion = sortedRegions[index + 1];
+		if (
+			[currentRegion, nextRegion].some(
+				(r) => r.entryMs !== undefined || r.exitMs !== undefined || r.easing !== undefined,
+			)
+		)
+			continue;
 		const gapMs = nextRegion.startMs - currentRegion.endMs;
 
 		if (gapMs > CHAINED_ZOOM_PAN_GAP_MS) {

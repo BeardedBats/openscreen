@@ -41,6 +41,7 @@ import { parseCliArgs } from "./cli/args";
 import { runCli } from "./cli/cliMain";
 import { isDiagnosticModeEnabled, mainLogBuffer } from "./diagnostics/main-log-buffer";
 import { buildEditMenuSubmenu, type EditorUndoRedoChannel, routeEditorUndoRedo } from "./edit-menu";
+import { FORK_STORAGE_NAME, FORK_UPDATES_ENABLED } from "./fork-identity";
 import {
 	loadAndRegisterGlobalShortcut,
 	registerOpenAppShortcut,
@@ -101,6 +102,12 @@ if (process.platform === "linux") {
 }
 
 installMainProcessErrorGuards();
+
+app.setName(FORK_STORAGE_NAME);
+app.setPath(
+	"userData",
+	process.env.ELECTRON_USER_DATA_DIR || path.join(app.getPath("appData"), FORK_STORAGE_NAME),
+);
 
 export const RECORDINGS_DIR = path.join(app.getPath("userData"), "recordings");
 
@@ -715,6 +722,7 @@ async function runBackgroundUpdateCheck() {
 }
 
 function startBackgroundUpdateTimer() {
+	if (!FORK_UPDATES_ENABLED) return;
 	if (backgroundUpdateTimer) return;
 	if (
 		!shouldStartBackgroundUpdateTimer({
@@ -755,6 +763,16 @@ async function probeSelfUpdate(): Promise<UpdateOutcome> {
 }
 
 async function checkForUpdates(onVerdict?: () => void) {
+	if (!FORK_UPDATES_ENABLED) {
+		onVerdict?.();
+		await showMessageBox({
+			type: "info",
+			title: PRODUCT_NAME,
+			message:
+				"Automatic updates are disabled for this personal build. Install updates from the BeardedBats fork.",
+		});
+		return;
+	}
 	if (updateCheckInFlight) {
 		// Another check owns the dialogs; this caller has nothing left to wait for.
 		onVerdict?.();

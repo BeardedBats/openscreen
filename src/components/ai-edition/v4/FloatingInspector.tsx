@@ -39,6 +39,10 @@ import type { useTimeline } from "@/lib/ai-edition/store/useTimeline";
 import { formatSeconds } from "@/lib/ai-edition/timeline/format";
 import { coalescedTrimGroups } from "@/lib/ai-edition/timeline/trim-mapping";
 import { ColorField } from "../ColorField";
+import { CompositionControls } from "../PLComposition";
+import { CursorFeedbackControls } from "../PLCursorFeedback";
+import { CameraTransitionControls, CaptionTools, ChyronInspector, ChyronsPane } from "../PLStudio";
+import { ZoomQuickControls } from "../PLZoomTarget";
 import {
 	AudioPane,
 	AudioTrackPane,
@@ -57,11 +61,12 @@ type TimelineApi = ReturnType<typeof useTimeline>;
 // They were never a separate concern from the transcript — they RENDER it — and two
 // tabs meant two entry points to transcription, one of which ("transcribe video",
 // on the caption tab) was the only one many users ever found. See issue #560.
-export type Facet = "effects" | "layout" | "audio" | "cursor" | "transcript";
+export type Facet = "chyrons" | "effects" | "layout" | "audio" | "cursor" | "transcript";
 
 const FACETS: Array<{ id: Facet; labelKey: string; icon: typeof SlidersHorizontal }> = [
 	// Background is a SECTION of this facet now, not a facet of its own — see
 	// VideoEffectsPane for why the split had nowhere to sit.
+	{ id: "chyrons", labelKey: "chyrons.title", icon: FileText },
 	{ id: "effects", labelKey: "effects.title", icon: SlidersHorizontal },
 	{ id: "layout", labelKey: "layout.title", icon: Camera },
 	{ id: "audio", labelKey: "audio.title", icon: AudioLines },
@@ -72,6 +77,8 @@ const FACETS: Array<{ id: Facet; labelKey: string; icon: typeof SlidersHorizonta
 type TranscriptProps = ComponentProps<typeof TranscriptPane>;
 
 interface FloatingInspectorProps {
+	width?: number;
+	onWidthChange?: (width: number) => void;
 	facet: Facet;
 	open: boolean;
 	onFacetChange: (facet: Facet) => void;
@@ -91,6 +98,8 @@ interface FloatingInspectorProps {
 }
 
 export function FloatingInspector({
+	width = 360,
+	onWidthChange,
 	facet,
 	open,
 	onFacetChange,
@@ -122,13 +131,32 @@ export function FloatingInspector({
 	return (
 		<div className={styles.inspectorWrap}>
 			{effectiveOpen ? (
-				<div className={styles.inspector}>
+				<div className={styles.inspector} style={{ width }}>
+					{onWidthChange && (
+						<label className="pl-pane-resize">
+							Pane width
+							<input
+								aria-label="Inspector width"
+								type="range"
+								min={320}
+								max={520}
+								step={10}
+								value={width}
+								onChange={(e) => onWidthChange(e.target.valueAsNumber)}
+							/>
+						</label>
+					)}
 					{selection ? (
 						<SelectionPane tl={tl} onClose={() => tl.clearSelection()} />
 					) : audioTrackSelected ? (
 						<AudioTrackPane tl={tl} onClose={() => tl.clearSelection()} />
 					) : (
-						<FacetBody facet={facet} onCollapse={onToggleOpen} transcriptProps={transcriptProps} />
+						<FacetBody
+							tl={tl}
+							facet={facet}
+							onCollapse={onToggleOpen}
+							transcriptProps={transcriptProps}
+						/>
 					)}
 				</div>
 			) : null}
@@ -518,6 +546,7 @@ function SelectionPane({ tl, onClose }: { tl: TimelineApi; onClose: () => void }
 		return (
 			<div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
 				{paneHeader(<ZoomIn size={15} />, tt("labels.zoom"), onClose, tc("actions.close"))}
+				<ZoomQuickControls id={region.id} />
 				<div style={bodyStyle}>
 					{paneRow(
 						ts("zoom.level"),
@@ -631,6 +660,7 @@ function SelectionPane({ tl, onClose }: { tl: TimelineApi; onClose: () => void }
 	if (selection.kind === "annotation") {
 		const region = tl.annotationRegions.find((a) => a.id === selection.id);
 		if (!region) return null;
+		if (region.chyron) return <ChyronInspector region={region} tl={tl} />;
 		const hasBackground = hasTextBackground(region.style);
 		return (
 			<div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
@@ -967,7 +997,8 @@ function SelectionPane({ tl, onClose }: { tl: TimelineApi; onClose: () => void }
 					tc("actions.close"),
 				)}
 				<div style={bodyStyle}>
-					<p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "var(--muted)" }}>
+					<CameraTransitionControls id={region.id} />
+					<p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: "var(--muted)" }}>
 						{te("inspector.cameraFullscreenDescription")}
 					</p>
 					<button type="button" onClick={deleteAndClose} style={deleteBtnStyle}>
@@ -1030,12 +1061,14 @@ const secondaryBtnStyle: React.CSSProperties = {
 };
 
 function FacetBody({
+	tl,
 	facet,
 	onCollapse,
 	transcriptProps,
 }: {
 	facet: Facet;
 	onCollapse: () => void;
+	tl: TimelineApi;
 	transcriptProps: TranscriptProps;
 }) {
 	const te = useScopedT("editor");
@@ -1066,10 +1099,32 @@ function FacetBody({
 		</button>
 	);
 
-	if (facet === "layout") return wrap(collapse, <LayoutPane />);
+	if (facet === "chyrons") return wrap(collapse, <ChyronsPane tl={tl} />);
+	if (facet === "layout")
+		return wrap(
+			collapse,
+			<>
+				<CompositionControls tl={tl} />
+				<LayoutPane />
+			</>,
+		);
 	if (facet === "audio") return wrap(collapse, <AudioPane />);
-	if (facet === "cursor") return wrap(collapse, <CursorPane />);
-	if (facet === "transcript") return wrap(collapse, <TranscriptPane {...transcriptProps} />);
+	if (facet === "cursor")
+		return wrap(
+			collapse,
+			<>
+				<CursorFeedbackControls />
+				<CursorPane />
+			</>,
+		);
+	if (facet === "transcript")
+		return wrap(
+			collapse,
+			<>
+				<CaptionTools />
+				<TranscriptPane {...transcriptProps} />
+			</>,
+		);
 	// `effects` is the fallthrough rather than a branch of its own: the union has no
 	// tail left now that captions is a popover, and a `never` check here would only
 	// restate what the type already says.

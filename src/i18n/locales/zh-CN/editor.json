@@ -98,9 +98,9 @@
 		"changeLanguage": "切换语言",
 		"editorMode": "编辑器模式",
 		"modes": {
-			"media": "媒体",
+			"media": "Import",
 			"edit": "编辑",
-			"rec": "录制"
+			"rec": "Record"
 		}
 	},
 	"rec": {

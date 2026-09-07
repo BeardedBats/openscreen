@@ -60,6 +60,7 @@ import {
 	UnsavedChangesModal,
 	type UnsavedChoice,
 } from "./Modals";
+import { StudioActions } from "./PLStudio";
 import { Preview } from "./Preview";
 import { importPendingRecording } from "./recordingImport";
 import { AddAudioLayerDialog } from "./v4/AddAudioLayerDialog";
@@ -111,7 +112,7 @@ function NativePlaybackSync({
 	return null;
 }
 
-export const DEFAULT_TIMELINE_HEIGHT_PX = 392;
+export const DEFAULT_TIMELINE_HEIGHT_PX = 240;
 export const MIN_TIMELINE_HEIGHT_PX = 160;
 export const MAX_TIMELINE_HEIGHT_PX = 560;
 
@@ -181,7 +182,8 @@ export function NewEditorShell() {
 		MAX_TIMELINE_HEIGHT_PX,
 		Math.max(MIN_TIMELINE_HEIGHT_PX, timelineBaseHeightPx + extraAudioHeightPx),
 	);
-	const [inspectorOpen, setInspectorOpen] = useState(true);
+	const [inspectorOpen, setInspectorOpen] = useState(false);
+	const [inspectorWidth, setInspectorWidth] = useState(360);
 	const [facet, setFacet] = useState<Facet>("effects");
 	const [openProjectOpen, setOpenProjectOpen] = useState(false);
 	const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -1487,7 +1489,7 @@ export function NewEditorShell() {
 	return (
 		<div
 			className={v4.app}
-			style={{ gridTemplateRows: `58px 1fr ${showTimeline ? timelineRow : "0px"}` }}
+			style={{ gridTemplateRows: `58px auto 1fr ${showTimeline ? timelineRow : "0px"}` }}
 		>
 			<NativePlaybackSync visibleClips={visibleClips} clips={clips} />
 			<EditorTopBar
@@ -1511,6 +1513,19 @@ export function NewEditorShell() {
 				}}
 			/>
 
+			<StudioActions
+				tl={tl}
+				onChyrons={() => {
+					tl.clearSelection();
+					setFacet("chyrons");
+					setInspectorOpen(true);
+				}}
+				onTranscript={() => {
+					tl.clearSelection();
+					setFacet("transcript");
+					setInspectorOpen(true);
+				}}
+			/>
 			<div className={v4.body} style={{ gridTemplateColumns: bodyColumns }}>
 				{mode === "edit" && chatOpen ? (
 					<>
@@ -1551,7 +1566,7 @@ export function NewEditorShell() {
 									// issue) — still reserve the inspector's real footprint (right:20 +
 									// rail:50 + gap:10 + panel:300 ≈ 380, +a small gap) so it doesn't
 									// draw its own translucent panel flush against the canvas edge.
-									padding: `16px ${inspectorOpen ? 400 : 74}px 16px 16px`,
+									padding: `16px ${inspectorOpen ? inspectorWidth + 100 : 74}px 16px 16px`,
 									boxSizing: "border-box",
 								}}
 							>
@@ -1606,6 +1621,8 @@ export function NewEditorShell() {
 							<FloatingInspector
 								facet={facet}
 								open={inspectorOpen}
+								width={inspectorWidth}
+								onWidthChange={setInspectorWidth}
 								tl={tl}
 								onFacetChange={(f) => {
 									setFacet(f);
@@ -1633,7 +1650,7 @@ export function NewEditorShell() {
 				<div
 					style={{
 						position: "relative",
-						gridRow: 3,
+						gridRow: 4,
 						minHeight: 0,
 						background: "var(--surface)",
 						borderTop: "1px solid var(--border)",

@@ -21,7 +21,7 @@ import {
 	resolveAspectRatioValue,
 } from "@/lib/ai-edition/document/outputFormat";
 import { applyProbedDuration } from "@/lib/ai-edition/document/timeline";
-import type { AxcutDocument } from "@/lib/ai-edition/schema";
+import { type AxcutDocument, documentSchema } from "@/lib/ai-edition/schema";
 import { getEditorSettings } from "@/lib/ai-edition/store/editorSettings";
 import { assetCameraSource } from "@/lib/ai-edition/timeline/camera";
 import { resolveClipSourceEndSec } from "@/lib/ai-edition/timeline/clipDuration";
@@ -147,10 +147,27 @@ async function runExport(request: CliExportRequest): Promise<CliDoneResult> {
 	if (!loaded.success || loaded.project === undefined) {
 		throw new Error(loaded.error ?? loaded.message ?? "Failed to load project file");
 	}
-	if (!validateProjectData(loaded.project)) {
+	const currentProject = documentSchema.safeParse(loaded.project);
+	if (!currentProject.success && !validateProjectData(loaded.project)) {
 		throw new Error("Project file is not a valid .openscreen project");
 	}
-	const project = loaded.project;
+	const currentAsset = currentProject.success
+		? (currentProject.data.assets.find(
+				(a) => a.id === currentProject.data.project.primaryAssetId,
+			) ?? currentProject.data.assets[0])
+		: undefined;
+	const project = currentProject.success
+		? {
+				version: 2,
+				editor: normalizeProjectEditor(currentProject.data.legacyEditor ?? {}),
+				media: currentAsset
+					? {
+							screenVideoPath: currentAsset.originalPath,
+							webcamVideoPath: currentAsset.cameraTrack?.sourcePath,
+						}
+					: undefined,
+			}
+		: (loaded.project as import("@/components/video-editor/projectPersistence").EditorProjectData);
 	const media = resolveProjectMedia(project);
 	if (!media) {
 		throw new Error("Project file does not reference any recorded media");
@@ -199,16 +216,18 @@ async function runExport(request: CliExportRequest): Promise<CliDoneResult> {
 	// compositor consumes. The migration is pure and carries zooms, annotations,
 	// trims and the legacy editor settings; the clip's duration is unknown until
 	// probed, so applyProbedDuration must run or the export is a single frame.
-	let axcutDocument = migrateProjectDataToAxcutDocument({
-		...project,
-		media,
-		editor,
-	});
+	let axcutDocument = currentProject.success
+		? currentProject.data
+		: migrateProjectDataToAxcutDocument({
+				...project,
+				media,
+				editor,
+			});
 	const primaryAssetId = axcutDocument.project.primaryAssetId ?? axcutDocument.assets[0]?.id;
 	if (!primaryAssetId) {
 		throw new Error("Project migration produced no media asset");
 	}
-	if (probed.durationMs > 0) {
+	if (!currentProject.success && probed.durationMs > 0) {
 		axcutDocument = applyProbedDuration(axcutDocument, primaryAssetId, probed.durationMs / 1000);
 	}
 

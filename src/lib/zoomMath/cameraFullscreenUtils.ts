@@ -20,14 +20,20 @@ function computeCameraFullscreenRegionStrength(
 	region: CameraFullscreenRegion,
 	timeMs: number,
 ): number {
-	if (timeMs <= region.startMs || timeMs >= region.endMs) {
+	if (timeMs < region.startMs || timeMs >= region.endMs) {
 		return 0;
 	}
 
 	const duration = region.endMs - region.startMs;
 	const halfDuration = duration / 2;
-	const leadInWindow = Math.min(TRANSITION_WINDOW_MS, halfDuration);
-	const leadOutWindow = Math.min(LEAD_OUT_WINDOW_MS, halfDuration);
+	const transition =
+		region.transitionMs === undefined
+			? undefined
+			: Math.max(0, Math.min(1500, region.transitionMs));
+	const leadInWindow = region.startFullscreen
+		? 0
+		: Math.min(transition ?? TRANSITION_WINDOW_MS, halfDuration);
+	const leadOutWindow = Math.min(transition ?? LEAD_OUT_WINDOW_MS, halfDuration);
 	const leadInEnd = region.startMs + leadInWindow;
 	const leadOutStart = region.endMs - leadOutWindow;
 

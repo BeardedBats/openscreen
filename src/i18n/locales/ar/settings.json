@@ -351,5 +351,8 @@
 	},
 	"trim": {
 		"deleteRegion": "حذف منطقة القص"
+	},
+	"chyrons": {
+		"title": "Chyrons"
 	}
 }

@@ -1221,6 +1221,28 @@ pub struct CursorPlanInput<'a> {
     pub t: f32,
 }
 
+/// A click stays at its captured source point. The current crop and zoom transform it.
+pub fn click_ring(g: &FrameGeometry, input: &CursorPlanInput) -> Option<crate::scene::SceneAnnotation> {
+    let ring = input.scene?.cursor.click_ring.as_ref()?;
+    let click = input.track.last_click(input.t)?;
+    let age = input.t - click;
+    let duration = ring.duration_ms.clamp(100.0, 1500.0) / 1000.0;
+    if age >= duration { return None; }
+    let at_click = CursorPlanInput { t: click, ..*input };
+    let plan = plan_cursor(g, &at_click)?;
+    let center = plan.placement.upright_center();
+    let pixels = ring.size.clamp(24.0, 160.0) * g.frame_min_px / 1080.0 * (1.0 + 0.25 * age / duration);
+    let (w, h) = (pixels / input.render_px[0], pixels / input.render_px[1]);
+    Some(crate::scene::SceneAnnotation {
+        id: "pl-click-feedback".into(), clip_index: None,
+        start_sec: (g.source_t - age) as f64, end_sec: (g.source_t - age + duration) as f64,
+        kind: "image".into(), space: Some("frame".into()),
+        x: center[0] - w / 2.0, y: center[1] - h / 2.0, w, h, z_index: 0,
+        text: None, figure: None, blur: None, image_path: Some(ring.image.clone()),
+        chyron_motion: Some(crate::scene::ChyronMotion { entry: "cut".into(), exit: "fade".into(), entry_ms: 1.0, exit_ms: ring.duration_ms }),
+    })
+}
+
 /// `None` = rien à dessiner cette frame : curseur masqué, ou pointeur hors du rect source
 /// courant (zoom serré, hors écran) — un état normal en lecture, pas une erreur.
 pub fn plan_cursor(g: &FrameGeometry, input: &CursorPlanInput) -> Option<CursorPlan> {
@@ -2125,4 +2147,3 @@ mod tests {
         assert!(plan.taps >= 2 && plan.taps <= 16, "taps adaptatifs dans [2, 16], got {}", plan.taps);
     }
 }
-

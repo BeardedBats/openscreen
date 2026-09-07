@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 	app: { isPackaged: true, getVersion: vi.fn(() => "1.9.2") },
 }));
 
+vi.mock("./fork-identity", () => ({ FORK_UPDATES_ENABLED: true }));
 vi.mock("electron", () => ({ app: mocks.app }));
 vi.mock("electron-updater", () => ({ autoUpdater: mocks.autoUpdater }));
 

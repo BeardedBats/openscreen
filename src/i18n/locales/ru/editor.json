@@ -98,9 +98,9 @@
 		"changeLanguage": "Сменить язык",
 		"editorMode": "Режим редактора",
 		"modes": {
-			"media": "Медиа",
+			"media": "Import",
 			"edit": "Редактирование",
-			"rec": "Запись"
+			"rec": "Record"
 		}
 	},
 	"rec": {
